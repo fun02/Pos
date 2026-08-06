@@ -3,9 +3,14 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+{
   "scripts": {
+    "dev": "node api/index.js",
+    "start": "node api/index.js",
+    "build": "prisma generate",
     "postinstall": "prisma generate"
-  },
+  }
+},
   "repository": {
     "type": "git",
     "url": "git+https://github.com/fun02/Pos.git"
