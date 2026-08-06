@@ -22,8 +22,16 @@
     "prisma": "^5.22.0"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.7.1",
     "@prisma/client": "^5.22.0",
+    "axios": "^1.19.0",
     "bcryptjs": "^3.0.3",
-    "jsonwebtoken": "^9.0.3"
+    "clsx": "^2.1.1",
+    "framer-motion": "^13.0.0",
+    "jsonwebtoken": "^9.0.3",
+    "lucide-react": "^1.29.0",
+    "react-hook-form": "^7.84.0",
+    "tailwind-merge": "^3.6.0",
+    "zod": "^3.25.76"
   }
 }
