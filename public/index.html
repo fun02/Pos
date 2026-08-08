@@ -127,7 +127,7 @@
 // Architecture: Service modules → UI modules → App controller
     // ---- Data Service (Terhubung langsung ke Cloud Firestore) ----
 // ============================================================
-    const DataService = {
+    window.App = (() => {
         _listeners: [],
         onChange(fn) { this._listeners.push(fn); },
         _notify() { this._listeners.forEach(fn=>fn(window._firestoreCache || [])); },
