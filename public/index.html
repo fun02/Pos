@@ -1233,43 +1233,6 @@
 </script>
    
 <!-- FIREBASE AUTH & FIRESTORE INTEGRATION -->
-    <script>
-    // Daftarkan fungsi ke window agar bisa dipanggil langsung dari atribut onclick di HTML
-    window.switchAuthTab = function(mode) {
-        const signinForm = document.getElementById('form-signin');
-        const signupForm = document.getElementById('form-signup');
-        const forgotForm = document.getElementById('form-forgot');
-        
-        const btnSignin = document.getElementById('tab-signin');
-        const btnSignup = document.getElementById('tab-signup');
-        const btnForgot = document.getElementById('tab-forgot');
-        const subtitle = document.getElementById('auth-subtitle');
-
-        // Reset semua form ke hidden
-        if(signinForm) signinForm.classList.add('hidden');
-        if(signupForm) signupForm.classList.add('hidden');
-        if(forgotForm) forgotForm.classList.add('hidden');
-        
-        if(btnSignin) btnSignin.className = "flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition";
-        if(btnSignup) btnSignup.className = "flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition";
-        if(btnForgot) btnForgot.className = "flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition";
-
-        if(mode === 'signin') {
-            if(signinForm) signinForm.classList.remove('hidden');
-            if(btnSignin) btnSignin.className = "flex-1 py-2 rounded-lg bg-blue-600 text-white transition";
-            if(subtitle) subtitle.textContent = "Silakan login untuk mengakses kasir";
-        } else if(mode === 'signup') {
-            if(signupForm) signupForm.classList.remove('hidden');
-            if(btnSignup) btnSignup.className = "flex-1 py-2 rounded-lg bg-green-600 text-white transition";
-            if(subtitle) subtitle.textContent = "Daftarkan akun kasir baru Anda";
-        } else if(mode === 'forgot') {
-            if(forgotForm) forgotForm.classList.remove('hidden');
-            if(btnForgot) btnForgot.className = "flex-1 py-2 rounded-lg bg-amber-600 text-white transition";
-            if(subtitle) subtitle.textContent = "Pulihkan akses password akun Anda";
-        }
-    }
-</script>
-
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -1290,7 +1253,45 @@
 
     const authView = document.getElementById('auth-view');
 
-    // Cek Status Sesi Login
+    // --- SISTEM TAB NAVIGASI (DIJALANKAN DENGAN EVENT LISTENER) ---
+    const btnSignin = document.getElementById('tab-signin');
+    const btnSignup = document.getElementById('tab-signup');
+    const btnForgot = document.getElementById('tab-forgot');
+    
+    const signinForm = document.getElementById('form-signin');
+    const signupForm = document.getElementById('form-signup');
+    const forgotForm = document.getElementById('form-forgot');
+    const subtitle = document.getElementById('auth-subtitle');
+
+    function switchTab(mode) {
+        signinForm.classList.add('hidden');
+        signupForm.classList.add('hidden');
+        forgotForm.classList.add('hidden');
+
+        btnSignin.className = "flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition";
+        btnSignup.className = "flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition";
+        btnForgot.className = "flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition";
+
+        if(mode === 'signin') {
+            signinForm.classList.remove('hidden');
+            btnSignin.className = "flex-1 py-2 rounded-lg bg-blue-600 text-white transition";
+            subtitle.textContent = "Silakan login untuk mengakses kasir";
+        } else if(mode === 'signup') {
+            signupForm.classList.remove('hidden');
+            btnSignup.className = "flex-1 py-2 rounded-lg bg-green-600 text-white transition";
+            subtitle.textContent = "Daftarkan akun kasir baru Anda";
+        } else if(mode === 'forgot') {
+            forgotForm.classList.remove('hidden');
+            btnForgot.className = "flex-1 py-2 rounded-lg bg-amber-600 text-white transition";
+            subtitle.textContent = "Pulihkan akses password akun Anda";
+        }
+    }
+
+    if(btnSignin) btnSignin.addEventListener('click', () => switchTab('signin'));
+    if(btnSignup) btnSignup.addEventListener('click', () => switchTab('signup'));
+    if(btnForgot) btnForgot.addEventListener('click', () => switchTab('forgot'));
+
+    // --- DETEKSI SESI LOGIN ---
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             if(authView) authView.classList.add('hidden');
@@ -1311,7 +1312,7 @@
         }
     });
 
-    // 1. Aksi Sign In / Masuk
+    // 1. AKSI SIGN IN / MASUK
     document.getElementById('form-signin').addEventListener('submit', async (e) => {
         e.preventDefault();
         const email = document.getElementById('signin-email').value;
@@ -1325,7 +1326,7 @@
         }
     });
 
-    // 2. Aksi Sign Up / Daftar (Menyimpan Username & Role Kasir ke Firestore)
+    // 2. AKSI SIGN UP / DAFTAR AKUN
     document.getElementById('form-signup').addEventListener('submit', async (e) => {
         e.preventDefault();
         const username = document.getElementById('signup-username').value;
@@ -1341,7 +1342,6 @@
         try {
             App.Loading.show("Mendaftarkan akun...");
             const res = await createUserWithEmailAndPassword(auth, email, pass);
-            // Simpan data profil ke Firestore
             await setDoc(doc(db, "users", res.user.uid), {
                 username: username,
                 email: email,
@@ -1355,7 +1355,7 @@
         }
     });
 
-    // 3. Aksi Lupa Password (Mengirim email reset password via Firebase)
+    // 3. AKSI LUPA PASSWORD
     document.getElementById('form-forgot').addEventListener('submit', async (e) => {
         e.preventDefault();
         const email = document.getElementById('forgot-email').value;
@@ -1363,15 +1363,15 @@
             App.Loading.show("Mengirim link reset...");
             await sendPasswordResetEmail(auth, email);
             App.Loading.hide();
-            alert("Link pemulihan password telah dikirim ke email Anda. Silakan cek inbox/spam.");
-            switchAuthTab('signin');
+            alert("Link pemulihan password telah dikirim ke email Anda.");
+            switchTab('signin');
         } catch (err) {
             App.Loading.hide();
             alert("Gagal mereset password: " + err.message);
         }
     });
 
-    // Logout Handler
+    // LOGOUT
     const btnLogout = document.getElementById('btn-logout');
     if(btnLogout) {
         btnLogout.addEventListener('click', async () => {
