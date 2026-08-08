@@ -1105,39 +1105,6 @@ const App = (() => {
     return { toggleSidebar, toggleDarkMode, closeModal, confirmAccept, confirmReject, printReceipt, navigate };
 })();
 </script>
- <!-- Pastikan script menggunakan type="module" -->
-<script type="module">
-    // 1. IMPORT FIREBASE SDK v10 (Modular)
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { 
-        getAuth, 
-        signInWithEmailAndPassword,
-        createUserWithEmailAndPassword,
-        sendEmailVerification,
-        sendPasswordResetEmail
-    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { 
-        getFirestore, 
-        doc, 
-        setDoc, 
-        serverTimestamp 
-    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-    // 2. KONFIGURASI FIREBASE
-    // Ganti nilai ini dengan konfigurasi dari Firebase Console Anda
-    const firebaseConfig = {
-        apiKey: "API_KEY_ANDA",
-        authDomain: "fungrow-app.firebaseapp.com",
-        projectId: "fungrow-app",
-        storageBucket: "fungrow-app.appspot.com",
-        messagingSenderId: "SENDER_ID",
-        appId: "APP_ID"
-    };
-
-    // Inisialisasi Instance Firebase
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
 
     // 3. FUNGSI UTILITAS UI (Toast & Loading)
     const toastContainer = document.getElementById('toast-container');
@@ -1174,137 +1141,75 @@ const App = (() => {
             btn.innerHTML = `<span>${btn.dataset.originalText}</span>`;
         }
     };
+  
+</script>
+<!-- FIREBASE AUTH & FIRESTORE INTEGRATION -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // 4. LOGIKA LOGIN (Sign In)
-    document.getElementById('form-login').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const email = document.getElementById('login-email').value.trim();
-        const password = document.getElementById('login-password').value;
-        
-        if(!email || !password) return showToast('❌ Harap isi email dan password.', 'error');
-        
-        setLoading('btn-login', true, 'Signing in...');
-        
-        try {
-            // Autentikasi dengan Firebase
-            const userCredential = await signInWithEmailAndPassword(auth, email, password);
-            const user = userCredential.user;
+    // Format config sudah diperbaiki (tanpa https://)
+    const firebaseConfig = {
+        apiKey: "AIzaSyB4lkr5IzvrQIgRM7sZDO7yIKMU_16PE1U",
+        authDomain: "faan02.firebaseapp.com",
+        projectId: "faan02",
+        storageBucket: "faan02.firebasestorage.app",
+        messagingSenderId: "1060452885464",
+        appId: "1:1060452885464:web:175c75a2cfde51e72b48ad"
+    };
 
-            // Proteksi tambahan: Cek apakah email sudah diverifikasi
-            if (!user.emailVerified) {
-                // Logout otomatis jika belum verifikasi (opsional, tergantung kebijakan Anda)
-                // auth.signOut();
-                showToast('⚠️ Silakan verifikasi email Anda terlebih dahulu.', 'error');
-                setLoading('btn-login', false);
-                return;
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // Proteksi Halaman & Ambil Profil
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            try {
+                const userDocRef = doc(db, "users", user.uid);
+                const userDoc = await getDoc(userDocRef);
+
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    
+                    const userNameEl = document.getElementById('user-name');
+                    const userAvatarEl = document.getElementById('user-avatar');
+                    const currentRoleEl = document.getElementById('current-role');
+
+                    if(userNameEl) userNameEl.textContent = userData.fullName || userData.username;
+                    if(userAvatarEl) {
+                        const initial = (userData.fullName || userData.username || 'U').charAt(0).toUpperCase();
+                        userAvatarEl.textContent = initial;
+                    }
+                    if(currentRoleEl) {
+                        const role = userData.role || 'Kasir';
+                        currentRoleEl.textContent = role.charAt(0).toUpperCase() + role.slice(1);
+                    }
+                }
+            } catch (error) {
+                console.error("Gagal mengambil profil:", error);
             }
-
-            // Update timestamp lastLogin di Firestore
-            await setDoc(doc(db, "users", user.uid), {
-                lastLogin: serverTimestamp()
-            }, { merge: true }); // merge: true agar tidak menimpa data profil lain
-            
-            showToast('✓ Berhasil login! Mengalihkan...', 'success');
-            
-            // Redirect ke halaman dashboard (Sesuaikan URL Anda)
-            setTimeout(() => {
-                window.location.href = '/dashboard.html';
-            }, 1500);
-
-        } catch (error) {
-            console.error("Login Error:", error.code);
-            // Handling pesan error yang ramah pengguna
-            let errorMsg = '❌ Terjadi kesalahan saat login.';
-            if(error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-                errorMsg = '❌ Email atau password salah.';
-            } else if (error.code === 'auth/too-many-requests') {
-                errorMsg = '❌ Terlalu banyak percobaan. Coba lagi nanti.';
-            }
-            showToast(errorMsg, 'error');
-        } finally {
-            setLoading('btn-login', false);
+        } else {
+            // Tendang ke halaman login jika tidak ada sesi
+            window.location.replace('/index.html');
         }
     });
 
-    // 5. LOGIKA REGISTER (Sign Up)
-    document.getElementById('form-register').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const fullName = document.getElementById('reg-name').value.trim();
-        const username = document.getElementById('reg-username').value.trim();
-        const email = document.getElementById('reg-email').value.trim();
-        const password = document.getElementById('reg-password').value;
-        const confirmPassword = document.getElementById('reg-confirm').value;
-        const pwdStrength = document.getElementById('str-text').innerText;
-        
-        // Validasi Frontend
-        if(!fullName || !username || !email) return showToast('❌ Harap lengkapi semua data.', 'error');
-        if(password !== confirmPassword) return showToast('❌ Konfirmasi password tidak cocok.', 'error');
-        if(pwdStrength === 'Weak') return showToast('❌ Gunakan kombinasi password yang lebih kuat.', 'error');
-        
-        setLoading('btn-register', true, 'Creating account...');
-        
-        try {
-            // Buat Akun di Firebase Auth
-            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-            const user = userCredential.user;
-
-            // Simpan Profil ke Firestore
-            await setDoc(doc(db, "users", user.uid), {
-                email: user.email,
-                fullName: fullName,
-                username: username,
-                role: "user", // Default role
-                isActive: true,
-                createdAt: serverTimestamp(),
-                lastLogin: serverTimestamp()
-            });
-
-            // Kirim Email Verifikasi
-            await sendEmailVerification(user);
-            
-            showToast('✓ Akun berhasil dibuat! Silakan cek email untuk verifikasi.', 'success');
-            
-            // Pindah kembali ke view login
-            document.getElementById('form-register').reset();
-            App.switchView('view-login');
-
-        } catch (error) {
-            console.error("Register Error:", error.code);
-            let errorMsg = '❌ Terjadi kesalahan saat mendaftar.';
-            if(error.code === 'auth/email-already-in-use') {
-                errorMsg = '❌ Email sudah terdaftar. Silakan login.';
+    // Fungsi Logout
+    const btnLogout = document.getElementById('btn-logout');
+    if (btnLogout) {
+        btnLogout.addEventListener('click', async (e) => {
+            e.preventDefault();
+            if(confirm("Apakah Anda yakin ingin keluar?")) {
+                try {
+                    await signOut(auth);
+                } catch (error) {
+                    alert("Gagal melakukan logout.");
+                }
             }
-            showToast(errorMsg, 'error');
-        } finally {
-            setLoading('btn-register', false);
-        }
-    });
-
-    // 6. LOGIKA LUPA PASSWORD (Forgot Password via Email)
-    document.getElementById('form-forgot').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const email = document.getElementById('forgot-email').value.trim();
-        
-        if(!email) return showToast('❌ Harap masukkan email Anda.', 'error');
-        
-        setLoading('btn-forgot', true, 'Sending link...');
-        
-        try {
-            await sendPasswordResetEmail(auth, email);
-            showToast('✓ Tautan reset password telah dikirim ke email Anda.', 'success');
-            
-            setTimeout(() => {
-                App.switchView('view-login');
-            }, 2000);
-            
-        } catch (error) {
-            showToast('❌ Gagal mengirim email reset.', 'error');
-        } finally {
-            setLoading('btn-forgot', false);
-        }
-    });
+        });
+    }
 </script>
 
 </body></html>
