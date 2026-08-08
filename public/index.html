@@ -128,6 +128,19 @@
     // ---- Data Service (Terhubung langsung ke Cloud Firestore) ----
 // ============================================================
     window.App = (() => {
+    // ---- Utilities ----
+    const Utils = {
+        id: () => Date.now().toString(36) + Math.random().toString(36).substr(2, 9),
+        fmt: (n) => 'Rp ' + (n||0).toLocaleString('id-ID'),
+        now: () => new Date().toISOString(),
+        dateStr: (iso) => { const d=new Date(iso); return d.toLocaleDateString('id-ID'); },
+        timeStr: (iso) => { const d=new Date(iso); return d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}); },
+        debounce(fn, ms=300) { let t; return (...a) => { clearTimeout(t); t=setTimeout(()=>fn(...a),ms); }; },
+        escHtml(s) { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+    };
+
+    // ---- Data Service (Terhubung langsung ke Cloud Firestore) ----
+    const DataService = {
         _listeners: [],
         onChange(fn) { this._listeners.push(fn); },
         _notify() { this._listeners.forEach(fn=>fn(window._firestoreCache || [])); },
@@ -211,7 +224,6 @@
             }
         }
     };
-
 
     // ---- Toast ----
     const Toast = {
