@@ -48,7 +48,27 @@
   <script src="/_sdk/0861142411a705b3.resizing_sdk.js" type="text/javascript" integrity="sha512-X0bLjaYj1Xt+fgqHIQTnngXBdDu6ba0g9OkC2AJGmKo8tGdT7I9t7nHNyXupUMHk4uOTomIlcija41NaartwJQ=="></script>
  </head>
  <body data-template-id="__page-root" class="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 transition-colors duration-300" style="background: rgb(248, 250, 252);"><!-- Toast Container -->
-  <div id="toast-container" class="fixed top-4 right-4 z-[9999] space-y-2"></div><!-- Loading Overlay -->
+      <!-- TAMPILAN LOGIN (Sistem Auth) -->
+    <div id="auth-view" class="fixed inset-0 z-[10000] bg-slate-900 flex items-center justify-center p-4 hidden">
+        <div class="glass max-w-md w-full p-8 rounded-2xl shadow-2xl space-y-6 bg-slate-800 text-white border border-slate-700">
+            <div class="text-center">
+                <h1 class="text-2xl font-bold">POS Retail Pro</h1>
+                <p class="text-sm text-slate-400 mt-1">Silakan login untuk mengakses kasir</p>
+            </div>
+            <form id="login-form" class="space-y-4">
+                <div>
+                    <label class="text-xs font-medium block mb-1">Email</label>
+                    <input type="email" id="login-email" required class="w-full px-3 py-2.5 rounded-lg bg-slate-700 border border-slate-600 text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="text-xs font-medium block mb-1">Password</label>
+                    <input type="password" id="login-password" required class="w-full px-3 py-2.5 rounded-lg bg-slate-700 border border-slate-600 text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <button type="submit" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium transition shadow-lg shadow-blue-600/30">Login Securely</button>
+            </form>
+        </div>
+    </div>
+   <div id="toast-container" class="fixed top-4 right-4 z-[9999] space-y-2"></div><!-- Loading Overlay -->
   <div id="loading-overlay" class="fixed inset-0 z-[9998] bg-white/80 dark:bg-slate-900/80 items-center justify-center hidden">
    <div class="flex flex-col items-center gap-3">
     <div class="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
@@ -1174,10 +1194,9 @@
 <!-- FIREBASE AUTH & FIRESTORE INTEGRATION -->
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getFirestore, collection, addDoc, updateDoc, doc, getDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // Format config sudah diperbaiki (tanpa https://)
     const firebaseConfig = {
         apiKey: "AIzaSyB4lkr5IzvrQIgRM7sZDO7yIKMU_16PE1U",
         authDomain: "faan02.firebaseapp.com",
@@ -1191,16 +1210,19 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // Proteksi Halaman & Ambil Profil
+    const authView = document.getElementById('auth-view');
+
+    // Cek Status Login Pengguna
     onAuthStateChanged(auth, async (user) => {
         if (user) {
+            // Jika sudah login: Sembunyikan form login, ambil profil, jalankan POS
+            if(authView) authView.classList.add('hidden');
             try {
                 const userDocRef = doc(db, "users", user.uid);
                 const userDoc = await getDoc(userDocRef);
 
                 if (userDoc.exists()) {
                     const userData = userDoc.data();
-                    
                     const userNameEl = document.getElementById('user-name');
                     const userAvatarEl = document.getElementById('user-avatar');
                     const currentRoleEl = document.getElementById('current-role');
@@ -1213,16 +1235,37 @@
                     if(currentRoleEl) {
                         const role = userData.role || 'Kasir';
                         currentRoleEl.textContent = role.charAt(0).toUpperCase() + role.slice(1);
+                        App.currentRole = role.toLowerCase();
                     }
                 }
             } catch (error) {
                 console.error("Gagal mengambil profil:", error);
             }
+            // Jalankan aplikasi POS utama Anda
+            App.init();
         } else {
-            // Tendang ke halaman login jika tidak ada sesi
-            window.location.replace('/index.html');
+            // Jika belum login: Tampilkan form login di atas layar
+            if(authView) authView.classList.remove('hidden');
+            App.Loading.hide();
         }
     });
+
+    // Event Handler saat Form Login disubmit
+    const loginForm = document.getElementById('login-form');
+    if(loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            try {
+                App.Loading.show("Logging in...");
+                await signInWithEmailAndPassword(auth, email, password);
+            } catch (error) {
+                App.Loading.hide();
+                alert("Gagal Login: " + error.message);
+            }
+        });
+    }
 
     // Fungsi Logout
     const btnLogout = document.getElementById('btn-logout');
@@ -1231,8 +1274,10 @@
             e.preventDefault();
             if(confirm("Apakah Anda yakin ingin keluar?")) {
                 try {
+                    App.Loading.show("Logging out...");
                     await signOut(auth);
                 } catch (error) {
+                    App.Loading.hide();
                     alert("Gagal melakukan logout.");
                 }
             }
