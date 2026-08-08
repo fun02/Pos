@@ -125,50 +125,90 @@
 // ============================================================
 // POS RETAIL PRO - Modular Client-Side Application
 // Architecture: Service modules → UI modules → App controller
-// Ready for Express.js + PostgreSQL migration
+    // ---- Data Service (Terhubung langsung ke Cloud Firestore) ----
 // ============================================================
-
-const App = (() => {
-    // ---- Utilities ----
-    const Utils = {
-        id: () => Date.now().toString(36) + Math.random().toString(36).substr(2, 9),
-        fmt: (n) => 'Rp ' + (n||0).toLocaleString('id-ID'),
-        now: () => new Date().toISOString(),
-        dateStr: (iso) => { const d=new Date(iso); return d.toLocaleDateString('id-ID'); },
-        timeStr: (iso) => { const d=new Date(iso); return d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}); },
-        debounce(fn, ms=300) { let t; return (...a) => { clearTimeout(t); t=setTimeout(()=>fn(...a),ms); }; },
-        escHtml(s) { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
-    };
-
-    // ---- Data Service (abstraction layer for backend migration) ----
-    let allData = [];
-        const DataService = {
+    const DataService = {
         _listeners: [],
         onChange(fn) { this._listeners.push(fn); },
-        _notify() { this._listeners.forEach(fn=>fn(allData)); },
+        _notify() { this._listeners.forEach(fn=>fn(window._firestoreCache || [])); },
 
-        getByType(type) { return allData.filter(r=>r.entity_type===type).map(r=>({...r, ...JSON.parse(r.data_json||'{}')})); },
-        getById(id) { const r=allData.find(r=>r.entity_id===id); return r?{...r,...JSON.parse(r.data_json||'{}')}:null; },
+        async initFirestore() {
+            try {
+                const querySnapshot = await getDocs(collection(db, "pos_data"));
+                window._firestoreCache = [];
+                querySnapshot.forEach((docSnap) => {
+                    window._firestoreCache.push({ entity_id: docSnap.id, ...docSnap.data() });
+                });
+                this._notify();
+            } catch (error) {
+                console.error("Gagal memuat data dari Firestore:", error);
+            }
+        },
+
+        getByType(type) { 
+            const cache = window._firestoreCache || [];
+            return cache.filter(r=>r.entity_type===type).map(r=>({...r, ...JSON.parse(r.data_json||'{}')})); 
+        },
+
+        getById(id) { 
+            const cache = window._firestoreCache || [];
+            const r=cache.find(r=>r.entity_id===id); 
+            return r?{...r,...JSON.parse(r.data_json||'{}')}:null; 
+        },
 
         async create(type, data) {
-            // Simulasi penyimpanan sementara agar animasi loading berhenti dengan sukses
-            const id = Utils.id();
-            allData.push({ entity_type: type, entity_id: id, data_json: JSON.stringify(data), created_at: Utils.now() });
-            Toast.show('Data berhasil disimulasikan disimpan','success');
-            this._notify();
-            return id;
+            try {
+                const docData = {
+                    entity_type: type,
+                    data_json: JSON.stringify(data),
+                    created_at: Utils.now()
+                };
+                const docRef = await addDoc(collection(db, "pos_data"), docData);
+                
+                if(!window._firestoreCache) window._firestoreCache = [];
+                window._firestoreCache.push({ entity_id: docRef.id, ...docData });
+                
+                Toast.show('Data berhasil disimpan ke Cloud Firestore','success');
+                this._notify();
+                return docRef.id;
+            } catch (error) {
+                console.error("Error creating document: ", error);
+                Toast.show('Gagal menyimpan data ke database','danger');
+                return null;
+            }
         },
 
         async update(entityId, data) {
-            Toast.show('Data berhasil diupdate','success');
-            return true;
+            try {
+                const docRef = doc(db, "pos_data", entityId);
+                const existing = (window._firestoreCache || []).find(r => r.entity_id === entityId);
+                const updatedJson = JSON.stringify(data);
+
+                await updateDoc(docRef, { data_json: updatedJson });
+
+                if(existing) existing.data_json = updatedJson;
+                Toast.show('Data berhasil diupdate','success');
+                this._notify();
+                return true;
+            } catch (error) {
+                console.error("Error updating document: ", error);
+                Toast.show('Gagal mengupdate data','danger');
+                return false;
+            }
         },
 
         async remove(entityId) {
-            allData = allData.filter(r => r.entity_id !== entityId);
-            Toast.show('Data berhasil dihapus','success');
-            this._notify();
-            return true;
+            try {
+                await deleteDoc(doc(db, "pos_data", entityId));
+                window._firestoreCache = (window._firestoreCache || []).filter(r => r.entity_id !== entityId);
+                Toast.show('Data berhasil dihapus','success');
+                this._notify();
+                return true;
+            } catch (error) {
+                console.error("Error deleting document: ", error);
+                Toast.show('Gagal menghapus data','danger');
+                return false;
+            }
         }
     };
 
@@ -1081,28 +1121,16 @@ const App = (() => {
             Loading.hide();
         });
     }
-
-    // ---- Init ----
+        // ---- Init ----
     async function init() {
-    Loading.show();
-    
-    // Nanti, di sinilah kita akan menaruh logika fetch() ke server Express
-    // Untuk saat ini, kita matikan loading secara manual agar UI bisa terbuka
-    
-    setTimeout(() => {
-        Loading.hide();
+        Loading.show();
         renderNav();
         renderPage(currentPage);
-    }, 500); 
-}
+        Loading.hide();
+    }
 
-    document.addEventListener('DOMContentLoaded',()=>{
-        init();
-        lucide.createIcons();
-    });
-
-    // Public API
-    return { toggleSidebar, toggleDarkMode, closeModal, confirmAccept, confirmReject, printReceipt, navigate };
+    // Public API (init sudah ditambahkan agar bisa dipanggil dari luar modul)
+    return { toggleSidebar, toggleDarkMode, closeModal, confirmAccept, confirmReject, printReceipt, navigate, init };
 })();
 </script>
 
@@ -1147,7 +1175,7 @@ const App = (() => {
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, updateDoc, doc, getDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     // Format config sudah diperbaiki (tanpa https://)
     const firebaseConfig = {
