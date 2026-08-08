@@ -1233,9 +1233,9 @@
 </script>
    
 <!-- FIREBASE AUTH & FIRESTORE INTEGRATION -->
-    // Fungsi untuk mengganti tampilan tab (Masuk / Daftar / Lupa Password)
-   <script>
-    function switchAuthTab(mode) {
+    <script>
+    // Daftarkan fungsi ke window agar bisa dipanggil langsung dari atribut onclick di HTML
+    window.switchAuthTab = function(mode) {
         const signinForm = document.getElementById('form-signin');
         const signupForm = document.getElementById('form-signup');
         const forgotForm = document.getElementById('form-forgot');
@@ -1245,27 +1245,27 @@
         const btnForgot = document.getElementById('tab-forgot');
         const subtitle = document.getElementById('auth-subtitle');
 
-        // Reset semua ke hidden & style tombol netral
-        signinForm.classList.add('hidden');
-        signupForm.classList.add('hidden');
-        forgotForm.classList.add('hidden');
+        // Reset semua form ke hidden
+        if(signinForm) signinForm.classList.add('hidden');
+        if(signupForm) signupForm.classList.add('hidden');
+        if(forgotForm) forgotForm.classList.add('hidden');
         
-        btnSignin.className = "flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition";
-        btnSignup.className = "flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition";
-        btnForgot.className = "flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition";
+        if(btnSignin) btnSignin.className = "flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition";
+        if(btnSignup) btnSignup.className = "flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition";
+        if(btnForgot) btnForgot.className = "flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition";
 
         if(mode === 'signin') {
-            signinForm.classList.remove('hidden');
-            btnSignin.className = "flex-1 py-2 rounded-lg bg-blue-600 text-white transition";
-            subtitle.textContent = "Silakan login untuk mengakses kasir";
+            if(signinForm) signinForm.classList.remove('hidden');
+            if(btnSignin) btnSignin.className = "flex-1 py-2 rounded-lg bg-blue-600 text-white transition";
+            if(subtitle) subtitle.textContent = "Silakan login untuk mengakses kasir";
         } else if(mode === 'signup') {
-            signupForm.classList.remove('hidden');
-            btnSignup.className = "flex-1 py-2 rounded-lg bg-green-600 text-white transition";
-            subtitle.textContent = "Daftarkan akun kasir baru Anda";
+            if(signupForm) signupForm.classList.remove('hidden');
+            if(btnSignup) btnSignup.className = "flex-1 py-2 rounded-lg bg-green-600 text-white transition";
+            if(subtitle) subtitle.textContent = "Daftarkan akun kasir baru Anda";
         } else if(mode === 'forgot') {
-            forgotForm.classList.remove('hidden');
-            btnForgot.className = "flex-1 py-2 rounded-lg bg-amber-600 text-white transition";
-            subtitle.textContent = "Pulihkan akses password akun Anda";
+            if(forgotForm) forgotForm.classList.remove('hidden');
+            if(btnForgot) btnForgot.className = "flex-1 py-2 rounded-lg bg-amber-600 text-white transition";
+            if(subtitle) subtitle.textContent = "Pulihkan akses password akun Anda";
         }
     }
 </script>
