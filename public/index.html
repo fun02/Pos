@@ -48,23 +48,63 @@
   <script src="/_sdk/0861142411a705b3.resizing_sdk.js" type="text/javascript" integrity="sha512-X0bLjaYj1Xt+fgqHIQTnngXBdDu6ba0g9OkC2AJGmKo8tGdT7I9t7nHNyXupUMHk4uOTomIlcija41NaartwJQ=="></script>
  </head>
  <body data-template-id="__page-root" class="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 transition-colors duration-300" style="background: rgb(248, 250, 252);"><!-- Toast Container -->
-      <!-- TAMPILAN LOGIN (Sistem Auth) -->
+          <!-- TAMPILAN AUTH (Sign In, Sign Up, Lupa Password) -->
     <div id="auth-view" class="fixed inset-0 z-[10000] bg-slate-900 flex items-center justify-center p-4 hidden">
         <div class="glass max-w-md w-full p-8 rounded-2xl shadow-2xl space-y-6 bg-slate-800 text-white border border-slate-700">
             <div class="text-center">
                 <h1 class="text-2xl font-bold">POS Retail Pro</h1>
-                <p class="text-sm text-slate-400 mt-1">Silakan login untuk mengakses kasir</p>
+                <p id="auth-subtitle" class="text-sm text-slate-400 mt-1">Silakan login untuk mengakses kasir</p>
             </div>
-            <form id="login-form" class="space-y-4">
+
+            <!-- Tab Navigasi Mode -->
+            <div class="flex bg-slate-900 p-1 rounded-xl text-xs font-medium">
+                <button type="button" onclick="switchAuthTab('signin')" id="tab-signin" class="flex-1 py-2 rounded-lg bg-blue-600 text-white transition">Masuk</button>
+                <button type="button" onclick="switchAuthTab('signup')" id="tab-signup" class="flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition">Daftar</button>
+                <button type="button" onclick="switchAuthTab('forgot')" id="tab-forgot" class="flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition">Lupa Pass</button>
+            </div>
+
+            <!-- FORM 1: SIGN IN -->
+            <form id="form-signin" class="space-y-4">
                 <div>
-                    <label class="text-xs font-medium block mb-1">Email</label>
-                    <input type="email" id="login-email" required class="w-full px-3 py-2.5 rounded-lg bg-slate-700 border border-slate-600 text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                    <label class="text-xs font-medium block mb-1">Email / Username</label>
+                    <input type="text" id="signin-email" required placeholder="email@domain.com" class="w-full px-3 py-2.5 rounded-lg bg-slate-700 border border-slate-600 text-sm outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
                 <div>
                     <label class="text-xs font-medium block mb-1">Password</label>
-                    <input type="password" id="login-password" required class="w-full px-3 py-2.5 rounded-lg bg-slate-700 border border-slate-600 text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                    <input type="password" id="signin-password" required placeholder="••••••••" class="w-full px-3 py-2.5 rounded-lg bg-slate-700 border border-slate-600 text-sm outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
-                <button type="submit" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium transition shadow-lg shadow-blue-600/30">Login Securely</button>
+                <button type="submit" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium transition shadow-lg shadow-blue-600/30">Masuk</button>
+            </form>
+
+            <!-- FORM 2: SIGN UP / DAFTAR -->
+            <form id="form-signup" class="space-y-4 hidden">
+                <div>
+                    <label class="text-xs font-medium block mb-1">Username</label>
+                    <input type="text" id="signup-username" required placeholder="nama_pengguna" class="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="text-xs font-medium block mb-1">Email</label>
+                    <input type="email" id="signup-email" required placeholder="email@domain.com" class="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="text-xs font-medium block mb-1">Password</label>
+                    <input type="password" id="signup-password" required placeholder="Minimal 6 karakter" class="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="text-xs font-medium block mb-1">Konfirmasi Password</label>
+                    <input type="password" id="signup-confirm" required placeholder="Ulangi password" class="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <button type="submit" class="w-full py-2.5 bg-green-600 hover:bg-green-700 rounded-lg text-sm font-medium transition shadow-lg shadow-green-600/30">Daftar Akun</button>
+            </form>
+
+            <!-- FORM 3: LUPA PASSWORD -->
+            <form id="form-forgot" class="space-y-4 hidden">
+                <div>
+                    <label class="text-xs font-medium block mb-1">Email Terdaftar</label>
+                    <input type="email" id="forgot-email" required placeholder="Masukkan email akun Anda" class="w-full px-3 py-2.5 rounded-lg bg-slate-700 border border-slate-600 text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <p class="text-[11px] text-slate-400">Instruksi dan link pemulihan password baru akan dikirimkan otomatis ke email Anda melalui sistem keamanan Firebase.</p>
+                <button type="submit" class="w-full py-2.5 bg-amber-600 hover:bg-amber-700 rounded-lg text-sm font-medium transition shadow-lg shadow-amber-600/30">Kirim Link Reset Password</button>
             </form>
         </div>
     </div>
@@ -1191,11 +1231,49 @@
     };
   
 </script>
+   
 <!-- FIREBASE AUTH & FIRESTORE INTEGRATION -->
+    // Fungsi untuk mengganti tampilan tab (Masuk / Daftar / Lupa Password)
+   <script>
+    function switchAuthTab(mode) {
+        const signinForm = document.getElementById('form-signin');
+        const signupForm = document.getElementById('form-signup');
+        const forgotForm = document.getElementById('form-forgot');
+        
+        const btnSignin = document.getElementById('tab-signin');
+        const btnSignup = document.getElementById('tab-signup');
+        const btnForgot = document.getElementById('tab-forgot');
+        const subtitle = document.getElementById('auth-subtitle');
+
+        // Reset semua ke hidden & style tombol netral
+        signinForm.classList.add('hidden');
+        signupForm.classList.add('hidden');
+        forgotForm.classList.add('hidden');
+        
+        btnSignin.className = "flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition";
+        btnSignup.className = "flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition";
+        btnForgot.className = "flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition";
+
+        if(mode === 'signin') {
+            signinForm.classList.remove('hidden');
+            btnSignin.className = "flex-1 py-2 rounded-lg bg-blue-600 text-white transition";
+            subtitle.textContent = "Silakan login untuk mengakses kasir";
+        } else if(mode === 'signup') {
+            signupForm.classList.remove('hidden');
+            btnSignup.className = "flex-1 py-2 rounded-lg bg-green-600 text-white transition";
+            subtitle.textContent = "Daftarkan akun kasir baru Anda";
+        } else if(mode === 'forgot') {
+            forgotForm.classList.remove('hidden');
+            btnForgot.className = "flex-1 py-2 rounded-lg bg-amber-600 text-white transition";
+            subtitle.textContent = "Pulihkan akses password akun Anda";
+        }
+    }
+</script>
+
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyB4lkr5IzvrQIgRM7sZDO7yIKMU_16PE1U",
@@ -1212,77 +1290,95 @@
 
     const authView = document.getElementById('auth-view');
 
-    // Cek Status Login Pengguna
+    // Cek Status Sesi Login
     onAuthStateChanged(auth, async (user) => {
         if (user) {
-            // Jika sudah login: Sembunyikan form login, ambil profil, jalankan POS
             if(authView) authView.classList.add('hidden');
             try {
                 const userDocRef = doc(db, "users", user.uid);
                 const userDoc = await getDoc(userDocRef);
-
                 if (userDoc.exists()) {
                     const userData = userDoc.data();
-                    const userNameEl = document.getElementById('user-name');
-                    const userAvatarEl = document.getElementById('user-avatar');
-                    const currentRoleEl = document.getElementById('current-role');
-
-                    if(userNameEl) userNameEl.textContent = userData.fullName || userData.username;
-                    if(userAvatarEl) {
-                        const initial = (userData.fullName || userData.username || 'U').charAt(0).toUpperCase();
-                        userAvatarEl.textContent = initial;
-                    }
-                    if(currentRoleEl) {
-                        const role = userData.role || 'Kasir';
-                        currentRoleEl.textContent = role.charAt(0).toUpperCase() + role.slice(1);
-                        App.currentRole = role.toLowerCase();
-                    }
+                    document.getElementById('user-name').textContent = userData.username || userData.fullName;
+                    document.getElementById('user-avatar').textContent = (userData.username || 'U').charAt(0).toUpperCase();
+                    document.getElementById('current-role').textContent = (userData.role || 'Kasir').toUpperCase();
                 }
-            } catch (error) {
-                console.error("Gagal mengambil profil:", error);
-            }
-            // Jalankan aplikasi POS utama Anda
+            } catch (e) { console.error(e); }
             App.init();
         } else {
-            // Jika belum login: Tampilkan form login di atas layar
             if(authView) authView.classList.remove('hidden');
             App.Loading.hide();
         }
     });
 
-    // Event Handler saat Form Login disubmit
-    const loginForm = document.getElementById('login-form');
-    if(loginForm) {
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-password').value;
-            try {
-                App.Loading.show("Logging in...");
-                await signInWithEmailAndPassword(auth, email, password);
-            } catch (error) {
-                App.Loading.hide();
-                alert("Gagal Login: " + error.message);
-            }
-        });
-    }
+    // 1. Aksi Sign In / Masuk
+    document.getElementById('form-signin').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('signin-email').value;
+        const pass = document.getElementById('signin-password').value;
+        try {
+            App.Loading.show("Memproses masuk...");
+            await signInWithEmailAndPassword(auth, email, pass);
+        } catch (err) {
+            App.Loading.hide();
+            alert("Gagal Masuk: " + err.message);
+        }
+    });
 
-    // Fungsi Logout
+    // 2. Aksi Sign Up / Daftar (Menyimpan Username & Role Kasir ke Firestore)
+    document.getElementById('form-signup').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = document.getElementById('signup-username').value;
+        const email = document.getElementById('signup-email').value;
+        const pass = document.getElementById('signup-password').value;
+        const confirm = document.getElementById('signup-confirm').value;
+
+        if(pass !== confirm) {
+            alert("Konfirmasi password tidak cocok!");
+            return;
+        }
+
+        try {
+            App.Loading.show("Mendaftarkan akun...");
+            const res = await createUserWithEmailAndPassword(auth, email, pass);
+            // Simpan data profil ke Firestore
+            await setDoc(doc(db, "users", res.user.uid), {
+                username: username,
+                email: email,
+                role: "kasir",
+                createdAt: new Date().toISOString()
+            });
+            alert("Registrasi berhasil! Anda otomatis masuk.");
+        } catch (err) {
+            App.Loading.hide();
+            alert("Gagal Daftar: " + err.message);
+        }
+    });
+
+    // 3. Aksi Lupa Password (Mengirim email reset password via Firebase)
+    document.getElementById('form-forgot').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('forgot-email').value;
+        try {
+            App.Loading.show("Mengirim link reset...");
+            await sendPasswordResetEmail(auth, email);
+            App.Loading.hide();
+            alert("Link pemulihan password telah dikirim ke email Anda. Silakan cek inbox/spam.");
+            switchAuthTab('signin');
+        } catch (err) {
+            App.Loading.hide();
+            alert("Gagal mereset password: " + err.message);
+        }
+    });
+
+    // Logout Handler
     const btnLogout = document.getElementById('btn-logout');
-    if (btnLogout) {
-        btnLogout.addEventListener('click', async (e) => {
-            e.preventDefault();
-            if(confirm("Apakah Anda yakin ingin keluar?")) {
-                try {
-                    App.Loading.show("Logging out...");
-                    await signOut(auth);
-                } catch (error) {
-                    App.Loading.hide();
-                    alert("Gagal melakukan logout.");
-                }
+    if(btnLogout) {
+        btnLogout.addEventListener('click', async () => {
+            if(confirm("Yakin ingin keluar aplikasi?")) {
+                await signOut(auth);
             }
         });
     }
 </script>
-
 </body></html>
