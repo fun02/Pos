@@ -1105,5 +1105,206 @@ const App = (() => {
     return { toggleSidebar, toggleDarkMode, closeModal, confirmAccept, confirmReject, printReceipt, navigate };
 })();
 </script>
- 
+ <!-- Pastikan script menggunakan type="module" -->
+<script type="module">
+    // 1. IMPORT FIREBASE SDK v10 (Modular)
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { 
+        getAuth, 
+        signInWithEmailAndPassword,
+        createUserWithEmailAndPassword,
+        sendEmailVerification,
+        sendPasswordResetEmail
+    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { 
+        getFirestore, 
+        doc, 
+        setDoc, 
+        serverTimestamp 
+    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    // 2. KONFIGURASI FIREBASE
+    // Ganti nilai ini dengan konfigurasi dari Firebase Console Anda
+    const firebaseConfig = {
+        apiKey: "API_KEY_ANDA",
+        authDomain: "fungrow-app.firebaseapp.com",
+        projectId: "fungrow-app",
+        storageBucket: "fungrow-app.appspot.com",
+        messagingSenderId: "SENDER_ID",
+        appId: "APP_ID"
+    };
+
+    // Inisialisasi Instance Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // 3. FUNGSI UTILITAS UI (Toast & Loading)
+    const toastContainer = document.getElementById('toast-container');
+    
+    const showToast = (message, type = 'error') => {
+        const toast = document.createElement('div');
+        const colors = {
+            error: 'bg-red-500/10 border-red-500/50 text-red-400',
+            success: 'bg-green-500/10 border-green-500/50 text-green-400'
+        };
+        const icon = type === 'error' ? 'x-circle' : 'check-circle';
+        
+        toast.className = `toast-enter flex items-center gap-3 p-4 rounded-xl border backdrop-blur-md shadow-lg pointer-events-auto ${colors[type]}`;
+        toast.innerHTML = `<i data-lucide="${icon}" class="w-5 h-5 shrink-0"></i><p class="text-sm font-medium">${message}</p>`;
+        
+        toastContainer.appendChild(toast);
+        lucide.createIcons();
+
+        setTimeout(() => {
+            toast.classList.replace('toast-enter', 'toast-leave');
+            setTimeout(() => toast.remove(), 300);
+        }, 4000);
+    };
+
+    const setLoading = (btnId, isLoading, text) => {
+        const btn = document.getElementById(btnId);
+        const span = btn.querySelector('span');
+        if (isLoading) {
+            btn.disabled = true;
+            btn.dataset.originalText = span.innerText;
+            btn.innerHTML = `<div class="spinner"></div><span>${text}</span>`;
+        } else {
+            btn.disabled = false;
+            btn.innerHTML = `<span>${btn.dataset.originalText}</span>`;
+        }
+    };
+
+    // 4. LOGIKA LOGIN (Sign In)
+    document.getElementById('form-login').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const email = document.getElementById('login-email').value.trim();
+        const password = document.getElementById('login-password').value;
+        
+        if(!email || !password) return showToast('❌ Harap isi email dan password.', 'error');
+        
+        setLoading('btn-login', true, 'Signing in...');
+        
+        try {
+            // Autentikasi dengan Firebase
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
+
+            // Proteksi tambahan: Cek apakah email sudah diverifikasi
+            if (!user.emailVerified) {
+                // Logout otomatis jika belum verifikasi (opsional, tergantung kebijakan Anda)
+                // auth.signOut();
+                showToast('⚠️ Silakan verifikasi email Anda terlebih dahulu.', 'error');
+                setLoading('btn-login', false);
+                return;
+            }
+
+            // Update timestamp lastLogin di Firestore
+            await setDoc(doc(db, "users", user.uid), {
+                lastLogin: serverTimestamp()
+            }, { merge: true }); // merge: true agar tidak menimpa data profil lain
+            
+            showToast('✓ Berhasil login! Mengalihkan...', 'success');
+            
+            // Redirect ke halaman dashboard (Sesuaikan URL Anda)
+            setTimeout(() => {
+                window.location.href = '/dashboard.html';
+            }, 1500);
+
+        } catch (error) {
+            console.error("Login Error:", error.code);
+            // Handling pesan error yang ramah pengguna
+            let errorMsg = '❌ Terjadi kesalahan saat login.';
+            if(error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                errorMsg = '❌ Email atau password salah.';
+            } else if (error.code === 'auth/too-many-requests') {
+                errorMsg = '❌ Terlalu banyak percobaan. Coba lagi nanti.';
+            }
+            showToast(errorMsg, 'error');
+        } finally {
+            setLoading('btn-login', false);
+        }
+    });
+
+    // 5. LOGIKA REGISTER (Sign Up)
+    document.getElementById('form-register').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const fullName = document.getElementById('reg-name').value.trim();
+        const username = document.getElementById('reg-username').value.trim();
+        const email = document.getElementById('reg-email').value.trim();
+        const password = document.getElementById('reg-password').value;
+        const confirmPassword = document.getElementById('reg-confirm').value;
+        const pwdStrength = document.getElementById('str-text').innerText;
+        
+        // Validasi Frontend
+        if(!fullName || !username || !email) return showToast('❌ Harap lengkapi semua data.', 'error');
+        if(password !== confirmPassword) return showToast('❌ Konfirmasi password tidak cocok.', 'error');
+        if(pwdStrength === 'Weak') return showToast('❌ Gunakan kombinasi password yang lebih kuat.', 'error');
+        
+        setLoading('btn-register', true, 'Creating account...');
+        
+        try {
+            // Buat Akun di Firebase Auth
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
+
+            // Simpan Profil ke Firestore
+            await setDoc(doc(db, "users", user.uid), {
+                email: user.email,
+                fullName: fullName,
+                username: username,
+                role: "user", // Default role
+                isActive: true,
+                createdAt: serverTimestamp(),
+                lastLogin: serverTimestamp()
+            });
+
+            // Kirim Email Verifikasi
+            await sendEmailVerification(user);
+            
+            showToast('✓ Akun berhasil dibuat! Silakan cek email untuk verifikasi.', 'success');
+            
+            // Pindah kembali ke view login
+            document.getElementById('form-register').reset();
+            App.switchView('view-login');
+
+        } catch (error) {
+            console.error("Register Error:", error.code);
+            let errorMsg = '❌ Terjadi kesalahan saat mendaftar.';
+            if(error.code === 'auth/email-already-in-use') {
+                errorMsg = '❌ Email sudah terdaftar. Silakan login.';
+            }
+            showToast(errorMsg, 'error');
+        } finally {
+            setLoading('btn-register', false);
+        }
+    });
+
+    // 6. LOGIKA LUPA PASSWORD (Forgot Password via Email)
+    document.getElementById('form-forgot').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('forgot-email').value.trim();
+        
+        if(!email) return showToast('❌ Harap masukkan email Anda.', 'error');
+        
+        setLoading('btn-forgot', true, 'Sending link...');
+        
+        try {
+            await sendPasswordResetEmail(auth, email);
+            showToast('✓ Tautan reset password telah dikirim ke email Anda.', 'success');
+            
+            setTimeout(() => {
+                App.switchView('view-login');
+            }, 2000);
+            
+        } catch (error) {
+            showToast('❌ Gagal mengirim email reset.', 'error');
+        } finally {
+            setLoading('btn-forgot', false);
+        }
+    });
+</script>
+
 </body></html>
