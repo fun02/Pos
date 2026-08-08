@@ -35,6 +35,12 @@
             Log Out Securely
         </button>
     </main>
+<!-- Tambahkan ini di dalam <aside id="sidebar"> bagian bawah -->
+<div class="p-3 border-t border-slate-200 dark:border-slate-700 mt-auto">
+    <button id="btn-logout" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors font-medium">
+        <i data-lucide="log-out" class="w-4 h-4"></i> Logout
+    </button>
+</div>
 
     <!-- Firebase SDK & Session Logic -->
     <script type="module">
@@ -96,5 +102,87 @@
             }
         });
     </script>
+    <!-- FIREBASE AUTH & FIRESTORE INTEGRATION -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    // 1. KONFIGURASI FIREBASE (Samakan dengan yang ada di index.html)
+    const firebaseConfig = {
+        apiKey: "AIzaSyB4lkr5IzvrQIgRM7sZDO7yIKMU_16PE1U",
+        authDomain: "https://faan02.firebaseapp.com",
+        projectId: "faan02",
+        storageBucket: "https://faan02.firebasestorage.app",
+        messagingSenderId: "1060452885464",
+        appId: "1:1060452885464:web:175c75a2cfde51e72b48ad"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // 2. PROTEKSI HALAMAN & AMBIL DATA PROFIL
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            // Jika user login, ambil data profilnya dari Firestore
+            try {
+                const userDocRef = doc(db, "users", user.uid);
+                const userDoc = await getDoc(userDocRef);
+
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    
+                    // Update UI POS dengan data user dari database
+                    const userNameEl = document.getElementById('user-name');
+                    const userAvatarEl = document.getElementById('user-avatar');
+                    const currentRoleEl = document.getElementById('current-role');
+
+                    if(userNameEl) userNameEl.textContent = userData.fullName || userData.username;
+                    if(userAvatarEl) {
+                        // Ambil huruf pertama dari nama untuk Avatar
+                        const initial = (userData.fullName || userData.username || 'U').charAt(0).toUpperCase();
+                        userAvatarEl.textContent = initial;
+                    }
+                    if(currentRoleEl) {
+                        // Kapitalisasi huruf pertama dari role (misal: "admin" -> "Admin")
+                        const role = userData.role || 'Kasir';
+                        currentRoleEl.textContent = role.charAt(0).toUpperCase() + role.slice(1);
+                        
+                        // Opsional: Anda bisa memanggil fungsi renderNav() milik POS di sini
+                        // untuk menyesuaikan menu berdasarkan role Firebase
+                        // App.currentRole = userData.role;
+                        // App.renderNav();
+                    }
+                }
+            } catch (error) {
+                console.error("Gagal mengambil data user:", error);
+            }
+        } else {
+            // Jika user tidak login, langsung tendang ke halaman login (index.html)
+            window.location.replace('/index.html');
+        }
+    });
+
+    // 3. FUNGSI LOGOUT (Tambahkan tombol logout di UI POS Anda)
+    // Asumsi: Anda akan menambahkan tombol dengan id="btn-logout" di sidebar atau top nav POS
+    const btnLogout = document.getElementById('btn-logout');
+    if (btnLogout) {
+        btnLogout.addEventListener('click', async (e) => {
+            e.preventDefault();
+            
+            // Menggunakan fungsi konfirmasi bawaan POS Anda (App.confirm) atau confirm standar
+            if(confirm("Apakah Anda yakin ingin keluar?")) {
+                try {
+                    await signOut(auth);
+                    // onAuthStateChanged akan otomatis menendang user ke index.html
+                } catch (error) {
+                    alert("Gagal melakukan logout.");
+                }
+            }
+        });
+    }
+</script>
+
 </body>
 </html>
