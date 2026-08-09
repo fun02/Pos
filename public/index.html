@@ -1125,11 +1125,11 @@
     }
 
         // ---- Init ----
-    async function init() {
-        Loading.show();
+        async function init() {
+        if(DataService.initFirestore) await DataService.initFirestore(); // Tarik data dari Cloud Firestore
         renderNav();
         renderPage(currentPage);
-        Loading.hide();
+        lucide.createIcons();
     }
 
         // Public API (init sudah ditambahkan agar bisa dipanggil dari luar modul)
@@ -1215,7 +1215,9 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    
+    // Impor fungsi Firestore secara lengkap (tambahkan collection, addDoc, updateDoc, deleteDoc, getDocs)
+    import { getFirestore, doc, setDoc, getDoc, collection, addDoc, updateDoc, deleteDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyB4lkr5IzvrQIgRM7sZDO7yIKMU_16PE1U",
@@ -1230,7 +1232,17 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
+    // EKSPOR VARIABEL FIREBASE KE GLOBAL AGAR BISA DIBACA OLEH APLIKASI
+    window.db = db;
+    window.collection = collection;
+    window.addDoc = addDoc;
+    window.updateDoc = updateDoc;
+    window.deleteDoc = deleteDoc;
+    window.getDocs = getDocs;
+
     const authView = document.getElementById('auth-view');
+
+    // ... (biarkan sisa kode tab switch, onAuthStateChanged, login, register di bawahnya persis seperti sebelumnya) ...
 
     // Tab Navigasi Handler
     const btnSignin = document.getElementById('tab-signin');
