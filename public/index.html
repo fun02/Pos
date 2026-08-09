@@ -746,19 +746,30 @@ container.querySelector('#btn-add-sale')?.addEventListener('click', (e) => {
         render();
     }
 
-    // ---- Sale Form (POS) ----
+        // ---- Sale Form (POS) ----
     // ---- MODUL SCANNER & PENJUALAN BARU ----
     let codeReader = null;
     let isScanningActive = false;
+    
+    // Deklarasi state POS di tingkat modul agar dapat diakses oleh semua fungsi kasir
+    let saleCart = [];
+    let salePayment = 'Cash';
+    let saleDiscount = 0;
+    let saleVoucher = 0;
+    let saleTaxRate = 11;
 
     function openSaleForm() {
-        let saleCart=[]; let salePayment='Cash'; let saleDiscount=0; let saleVoucher=0;
+        // Reset state setiap kali form kasir baru dibuka
+        saleCart = []; 
+        salePayment = 'Cash'; 
+        saleDiscount = 0; 
+        saleVoucher = 0;
+        
         const products = DataService.getByType('product');
         const customers = DataService.getByType('customer');
         const settings = DataService.getByType('setting');
         const taxSetting = settings.find(s=>s.key==='tax_rate');
-        if(taxSetting) saleTaxRate=parseFloat(taxSetting.value)||11;
-
+        saleTaxRate = taxSetting ? (parseFloat(taxSetting.value) || 11) : 11;
         const html = `<div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
             <div class="space-y-3">
                 <div><label class="text-xs font-medium block mb-1">Barcode / Cari Produk</label>
