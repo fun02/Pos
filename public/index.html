@@ -668,7 +668,7 @@
     }
 
     // ---- Penjualan ----
-    function renderPenjualan(container) {
+        function renderPenjualan(container) {
         const sales = DataService.getByType('sale');
         let search='', page=1, pageSize=10;
 
@@ -679,20 +679,14 @@
             if(page>pages)page=pages;
             const start=(page-1)*pageSize, slice=data.slice(start,start+pageSize);
 
-container.innerHTML = `
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div><h2 class="font-bold text-xl">Transaksi Penjualan</h2><p class="text-sm text-slate-500 mt-0.5">Kelola semua transaksi penjualan</p></div>
-        <button type="button" id="btn-tambah-penjualan" class="btn-ripple flex items-center gap-2 px-4 py-2.5 bg-primary text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition shadow-lg shadow-primary/25 cursor-pointer">
-            <i data-lucide="plus" class="w-4 h-4"></i>Tambah Penjualan
-        </button>
-    </div>
-`;
-// Pasang event listener langsung ke tombol yang baru dirender
-container.querySelector('#btn-tambah-penjualan')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    openSaleForm(); // Panggil langsung fungsi internalnya
-});
-                <div class="glass rounded-xl overflow-hidden slide-up">
+            container.innerHTML = `
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div><h2 class="font-bold text-xl">Transaksi Penjualan</h2><p class="text-sm text-slate-500 mt-0.5">Kelola semua transaksi penjualan</p></div>
+                    <button type="button" id="btn-tambah-penjualan" class="btn-ripple flex items-center gap-2 px-4 py-2.5 bg-primary text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition shadow-lg shadow-primary/25 cursor-pointer">
+                        <i data-lucide="plus" class="w-4 h-4"></i>Tambah Penjualan
+                    </button>
+                </div>
+                <div class="glass rounded-xl overflow-hidden slide-up mt-4">
                     <div class="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-700">
                         <div class="flex items-center gap-2"><span class="text-xs text-slate-500">Tampilkan</span><select class="psize px-2 py-1 rounded bg-slate-100 dark:bg-slate-700 text-xs outline-none"><option>10</option><option>25</option><option>50</option></select></div>
                         <div class="relative"><i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400"></i><input type="text" placeholder="Cari transaksi..." value="${Utils.escHtml(search)}" class="s-input pl-9 pr-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-700 border-0 text-xs outline-none focus:ring-2 focus:ring-primary/50 w-full sm:w-56"></div>
@@ -731,7 +725,13 @@ container.querySelector('#btn-tambah-penjualan')?.addEventListener('click', (e) 
                     </div>
                 </div>
             `;
-            container.querySelector('.btn-new-sale')?.addEventListener('click',()=>openSaleForm());
+
+            // Pasang event listener setelah HTML berhasil dirender
+            container.querySelector('#btn-tambah-penjualan')?.addEventListener('click', (e) => {
+                e.preventDefault();
+                openSaleForm();
+            });
+
             container.querySelector('.s-input')?.addEventListener('input',Utils.debounce(e=>{search=e.target.value;page=1;render();}));
             container.querySelector('.bp')?.addEventListener('click',()=>{if(page>1){page--;render();}});
             container.querySelector('.bn')?.addEventListener('click',()=>{if(page<pages){page++;render();}});
