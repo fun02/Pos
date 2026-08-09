@@ -682,8 +682,10 @@
            container.innerHTML = `
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div><h2 class="font-bold text-xl">Transaksi Penjualan</h2><p class="text-sm text-slate-500 mt-0.5">Kelola semua transaksi penjualan</p></div>
-        <button type="button" id="btn-trigger-sale" class="btn-ripple flex items-center gap-2 px-4 py-2.5 bg-primary text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition shadow-lg shadow-primary/25 cursor-pointer"><i data-lucide="plus" class="w-4 h-4"></i>Tambah Penjualan</button>
-    </div>
+      <button type="button" onclick="App.openSaleForm()" class="btn-new-sale btn-ripple flex items-center gap-2 px-4 py-2.5 bg-primary text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition shadow-lg shadow-primary/25 cursor-pointer">
+    <i data-lucide="plus" class="w-4 h-4"></i>Tambah Penjualan
+</button>
+</div>
                 <div class="glass rounded-xl overflow-hidden slide-up">
                     <div class="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-700">
                         <div class="flex items-center gap-2"><span class="text-xs text-slate-500">Tampilkan</span><select class="psize px-2 py-1 rounded bg-slate-100 dark:bg-slate-700 text-xs outline-none"><option>10</option><option>25</option><option>50</option></select></div>
