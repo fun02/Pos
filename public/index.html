@@ -67,12 +67,17 @@
     </div>
    </div>
    <nav id="sidebar-nav" class="flex-1 overflow-y-auto p-3 space-y-1"></nav>
-   <div class="p-3 border-t border-slate-200 dark:border-slate-700">
-    <div class="px-3 py-2 text-xs text-slate-400 mb-1">
+      <div class="p-3 border-t border-slate-200 dark:border-slate-700">
+    <div class="px-3 py-2 text-xs text-slate-400 mb-2">
      Login sebagai: <span id="current-role" class="font-medium text-slate-600 dark:text-slate-300">Admin</span>
     </div>
+    <!-- Tombol Logout Baru -->
+    <button id="btn-sidebar-logout" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-danger hover:bg-danger/10">
+        <i data-lucide="log-out" class="w-4 h-4"></i>Keluar
+    </button>
    </div>
-  </aside><!-- Main Content -->
+  </aside>
+<!-- Main Content -->
   <div class="lg:ml-64 min-h-screen flex flex-col"><!-- Top Nav -->
    <header class="sticky top-0 z-30 glass border-b border-slate-200 dark:border-slate-700 px-4 lg:px-6 py-3 flex items-center gap-4"><button onclick="App.toggleSidebar()" class="lg:hidden p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"><i data-lucide="menu" class="w-5 h-5"></i></button>
     <div class="flex-1 max-w-md relative hidden sm:block"><i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i> <input id="global-search" type="text" placeholder="Cari produk, transaksi..." class="w-full pl-10 pr-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-700 border-0 text-sm focus:ring-2 focus:ring-primary/50 outline-none transition">
@@ -1142,7 +1147,7 @@
     }
 
     // Public API (init sudah ditambahkan agar bisa dipanggil dari luar modul)
-    return { toggleSidebar, toggleDarkMode, closeModal, confirmAccept, confirmReject, printReceipt, navigate, init };
+    return { toggleSidebar, toggleDarkMode, closeModal, confirmAccept, confirmReject, printReceipt, navigate, init, showConfirm };
 })();
 </script>
 
@@ -1345,5 +1350,28 @@
             alert("Gagal mereset password: " + err.message);
         }
     });
+      // 4. AKSI LOGOUT SIDEBAR
+    const btnSidebarLogout = document.getElementById('btn-sidebar-logout');
+    if (btnSidebarLogout) {
+        btnSidebarLogout.addEventListener('click', async () => {
+            // Panggil modal konfirmasi bawaan aplikasi
+            const confirmed = await window.App.showConfirm(
+                "Keluar dari akun?", 
+                "Apakah Anda yakin ingin keluar dari POS Retail Pro?"
+            );
+            
+            // Jika user memilih 'Hapus' / 'Lanjutkan'
+            if (confirmed) {
+                try {
+                    if (window.App && window.App.Loading) window.App.Loading.show("Memproses keluar...");
+                    await signOut(auth); // Hapus sesi Firebase
+                    window.location.reload(); // Reload halaman untuk mereset seluruh state memori ke posisi awal (form login)
+                } catch (err) {
+                    if (window.App && window.App.Loading) window.App.Loading.hide();
+                    alert("Gagal keluar: " + err.message);
+                }
+            }
+        });
+    }
 </script>
 </body></html>
