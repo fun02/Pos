@@ -754,7 +754,7 @@ container.querySelector('#btn-add-sale')?.addEventListener('click', (e) => {
     let isScanningActive = false;
 
     function openSaleForm() {
-        saleCart=[]; salePayment='Cash'; saleDiscount=0; saleVoucher=0;
+        let saleCart=[]; let salePayment='Cash'; let saleDiscount=0; let saleVoucher=0;
         const products = DataService.getByType('product');
         const customers = DataService.getByType('customer');
         const settings = DataService.getByType('setting');
