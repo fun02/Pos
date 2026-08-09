@@ -727,10 +727,10 @@
             `;
 
             // Pasang event listener setelah HTML berhasil dirender
-            container.querySelector('#btn-tambah-penjualan')?.addEventListener('click', (e) => {
-                e.preventDefault();
-                openSaleForm();
-            });
+container.querySelector('#btn-add-sale')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    openSaleForm();
+});
 
             container.querySelector('.s-input')?.addEventListener('input',Utils.debounce(e=>{search=e.target.value;page=1;render();}));
             container.querySelector('.bp')?.addEventListener('click',()=>{if(page>1){page--;render();}});
@@ -1370,12 +1370,15 @@
         lucide.createIcons();
     }
 
-        // Public API (init sudah ditambahkan agar bisa dipanggil dari luar modul)
-    return { toggleSidebar, toggleDarkMode, closeModal, confirmAccept, confirmReject, printReceipt, navigate, init, Toast, Loading, showConfirm, openSaleForm };
+        function setRole(role) {
+        currentRole = role.toLowerCase();
+        renderNav();
+    }
+    return { toggleSidebar, toggleDarkMode, closeModal, confirmAccept, confirmReject, printReceipt, navigate, init, Toast, Loading, showConfirm, openSaleForm, setRole };
 })();
 </script>
 
-   <!-- TAMPILAN AUTH (Sign In, Sign Up, Lupa Password) -->
+<!-- TAMPILAN AUTH (Sign In, Lupa Password) -->
 <div id="auth-view" class="fixed inset-0 z-[99999] bg-slate-900 flex items-center justify-center p-4">
     <div class="glass max-w-md w-full p-8 rounded-2xl shadow-2xl space-y-6 bg-slate-800 text-white border border-slate-700">
         <div class="text-center">
@@ -1383,15 +1386,25 @@
             <p id="auth-subtitle" class="text-sm text-slate-400 mt-1">Silakan login untuk mengakses kasir</p>
         </div>
 
-        <!-- Tab Navigasi Mode -->
+        <!-- Tab Navigasi Mode (Tanpa Daftar) -->
         <div class="flex bg-slate-900 p-1 rounded-xl text-xs font-medium">
             <button type="button" id="tab-signin" class="flex-1 py-2 rounded-lg bg-blue-600 text-white transition">Masuk</button>
-            <button type="button" id="tab-signup" class="flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition">Daftar</button>
             <button type="button" id="tab-forgot" class="flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition">Lupa Pass</button>
         </div>
 
         <!-- FORM 1: SIGN IN -->
         <form id="form-signin" class="space-y-4">
+            <div>
+                <label class="text-xs font-medium block mb-1">Role Akun</label>
+                <div class="relative">
+                    <select id="signin-role" required class="w-full px-3 py-2.5 rounded-lg bg-slate-700 border border-slate-600 text-sm outline-none focus:ring-2 focus:ring-blue-500 appearance-none">
+                        <option value="" disabled selected>Pilih Role ▼</option>
+                        <option value="admin">Admin</option>
+                        <option value="supervisor">Supervisor</option>
+                        <option value="kasir">Kasir</option>
+                    </select>
+                </div>
+            </div>
             <div>
                 <label class="text-xs font-medium block mb-1">Email / Username</label>
                 <input type="text" id="signin-email" required placeholder="email@domain.com" class="w-full px-3 py-2.5 rounded-lg bg-slate-700 border border-slate-600 text-sm outline-none focus:ring-2 focus:ring-blue-500">
@@ -1401,40 +1414,6 @@
                 <input type="password" id="signin-password" required placeholder="••••••••" class="w-full px-3 py-2.5 rounded-lg bg-slate-700 border border-slate-600 text-sm outline-none focus:ring-2 focus:ring-blue-500">
             </div>
             <button type="submit" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium transition shadow-lg shadow-blue-600/30">Masuk</button>
-        </form>
-
-        <!-- FORM 2: SIGN UP / DAFTAR -->
-        <form id="form-signup" class="space-y-4 hidden">
-            <!-- Input Role Ditambahkan di Sini -->
-            <div>
-                <label class="text-xs font-medium block mb-1">Role Akun</label>
-                <div class="relative">
-                    <select id="signup-role" required class="w-full px-3 py-2.5 rounded-lg bg-slate-700 border border-slate-600 text-sm outline-none focus:ring-2 focus:ring-green-500 appearance-none">
-                        <option value="" disabled selected>Pilih Role ▼</option>
-                        <option value="admin">Admin</option>
-                        <option value="supervisor">Supervisor</option>
-                        <option value="kasir">Kasir</option>
-                    </select>
-                </div>
-            </div>
-            
-            <div>
-                <label class="text-xs font-medium block mb-1">Username</label>
-                <input type="text" id="signup-username" required placeholder="nama_pengguna" class="w-full px-3 py-2.5 rounded-lg bg-slate-700 border border-slate-600 text-sm outline-none focus:ring-2 focus:ring-green-500">
-            </div>
-            <div>
-                <label class="text-xs font-medium block mb-1">Email</label>
-                <input type="email" id="signup-email" required placeholder="email@domain.com" class="w-full px-3 py-2.5 rounded-lg bg-slate-700 border border-slate-600 text-sm outline-none focus:ring-2 focus:ring-green-500">
-            </div>
-            <div>
-                <label class="text-xs font-medium block mb-1">Password</label>
-                <input type="password" id="signup-password" required placeholder="Minimal 6 karakter" class="w-full px-3 py-2.5 rounded-lg bg-slate-700 border border-slate-600 text-sm outline-none focus:ring-2 focus:ring-green-500">
-            </div>
-            <div>
-                <label class="text-xs font-medium block mb-1">Konfirmasi Password</label>
-                <input type="password" id="signup-confirm" required placeholder="Ulangi password" class="w-full px-3 py-2.5 rounded-lg bg-slate-700 border border-slate-600 text-sm outline-none focus:ring-2 focus:ring-green-500">
-            </div>
-            <button type="submit" class="w-full py-2.5 bg-green-600 hover:bg-green-700 rounded-lg text-sm font-medium transition shadow-lg shadow-green-600/30">Daftar Akun</button>
         </form>
 
         <!-- FORM 3: LUPA PASSWORD -->
@@ -1480,35 +1459,24 @@
 
     const authView = document.getElementById('auth-view');
 
-    // ... (biarkan sisa kode tab switch, onAuthStateChanged, login, register di bawahnya persis seperti sebelumnya) ...
-
     // Tab Navigasi Handler
     const btnSignin = document.getElementById('tab-signin');
-    const btnSignup = document.getElementById('tab-signup');
     const btnForgot = document.getElementById('tab-forgot');
     
     const signinForm = document.getElementById('form-signin');
-    const signupForm = document.getElementById('form-signup');
     const forgotForm = document.getElementById('form-forgot');
     const subtitle = document.getElementById('auth-subtitle');
 
     function switchTab(mode) {
         signinForm.classList.add('hidden');
-        signupForm.classList.add('hidden');
         forgotForm.classList.add('hidden');
-
         btnSignin.className = "flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition";
-        btnSignup.className = "flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition";
         btnForgot.className = "flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition";
 
         if(mode === 'signin') {
             signinForm.classList.remove('hidden');
             btnSignin.className = "flex-1 py-2 rounded-lg bg-blue-600 text-white transition";
             subtitle.textContent = "Silakan login untuk mengakses kasir";
-        } else if(mode === 'signup') {
-            signupForm.classList.remove('hidden');
-            btnSignup.className = "flex-1 py-2 rounded-lg bg-green-600 text-white transition";
-            subtitle.textContent = "Daftarkan akun kasir baru Anda";
         } else if(mode === 'forgot') {
             forgotForm.classList.remove('hidden');
             btnForgot.className = "flex-1 py-2 rounded-lg bg-amber-600 text-white transition";
@@ -1517,7 +1485,6 @@
     }
 
     if(btnSignin) btnSignin.addEventListener('click', () => switchTab('signin'));
-    if(btnSignup) btnSignup.addEventListener('click', () => switchTab('signup'));
     if(btnForgot) btnForgot.addEventListener('click', () => switchTab('forgot'));
 
     // Cek Status Sesi Login
@@ -1529,9 +1496,16 @@
                 const userDoc = await getDoc(userDocRef);
                 if (userDoc.exists()) {
                     const userData = userDoc.data();
+                    const userRole = (userData.role || 'kasir').toLowerCase();
+                    
                     document.getElementById('user-name').textContent = userData.username || userData.fullName;
                     document.getElementById('user-avatar').textContent = (userData.username || 'U').charAt(0).toUpperCase();
-                    document.getElementById('current-role').textContent = (userData.role || 'Kasir').toUpperCase();
+                    document.getElementById('current-role').textContent = userRole.toUpperCase();
+                    
+                    // Terapkan Role Based Access Control ke Frontend
+                    if(window.App && typeof window.App.setRole === 'function') {
+                        window.App.setRole(userRole);
+                    }
                 }
             } catch (e) { console.error(e); }
             if(window.App && typeof App.init === 'function') App.init();
@@ -1541,59 +1515,53 @@
         }
     });
 
-    // 1. SIGN IN
+    // 1. SIGN IN DENGAN VALIDASI ROLE
     document.getElementById('form-signin').addEventListener('submit', async (e) => {
         e.preventDefault();
         const email = document.getElementById('signin-email').value;
         const pass = document.getElementById('signin-password').value;
+        const selectedRole = document.getElementById('signin-role').value;
+
+        if(!selectedRole) {
+            alert("Silakan pilih Role terlebih dahulu!");
+            return;
+        }
+
         try {
             if(window.App) App.Loading.show("Memproses masuk...");
-            await signInWithEmailAndPassword(auth, email, pass);
+            
+            // Lakukan Autentikasi
+            const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+            
+            // Validasi Role dari Firestore
+            const userDocRef = doc(db, "users", userCredential.user.uid);
+            const userDoc = await getDoc(userDocRef);
+            
+            if (userDoc.exists()) {
+                const dbRole = (userDoc.data().role || 'kasir').toLowerCase();
+                
+                // Jika Role yang dipilih tidak sama dengan database
+                if (dbRole !== selectedRole.toLowerCase()) {
+                    await signOut(auth); // Batalkan sesi masuk
+                    if(window.App) App.Loading.hide();
+                    alert("Role tidak sesuai dengan akun Anda.");
+                    return;
+                }
+            } else {
+                // Jika user login tapi data di firestore tidak ada, amankan dengan signOut
+                await signOut(auth);
+                if(window.App) App.Loading.hide();
+                alert("Data role pengguna tidak ditemukan di database.");
+                return;
+            }
+
         } catch (err) {
             if(window.App) App.Loading.hide();
             alert("Gagal Masuk: " + err.message);
         }
     });
 
-    // 2. SIGN UP (DAFTAR)
-    document.getElementById('form-signup').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const role = document.getElementById('signup-role').value; // Tangkap data role
-        const username = document.getElementById('signup-username').value;
-        const email = document.getElementById('signup-email').value;
-        const pass = document.getElementById('signup-password').value;
-        const confirm = document.getElementById('signup-confirm').value;
-
-        if(!role) {
-            alert("Silakan pilih Role terlebih dahulu!");
-            return;
-        }
-
-        if(pass !== confirm) {
-            alert("Konfirmasi password tidak cocok!");
-            return;
-        }
-
-        try {
-            if(window.App) App.Loading.show("Mendaftarkan akun...");
-            const res = await createUserWithEmailAndPassword(auth, email, pass);
-            
-            // Menyimpan username dan role yang dipilih ke tabel users
-            await setDoc(doc(db, "users", res.user.uid), {
-                username: username,
-                email: email,
-                role: role, 
-                createdAt: new Date().toISOString()
-            });
-            
-            alert(`Registrasi ${role} berhasil! Anda otomatis masuk.`);
-        } catch (err) {
-            if(window.App) App.Loading.hide();
-            alert("Gagal Daftar: " + err.message);
-        }
-    });
-
-    // 3. LUPA PASSWORD
+    // 3. LUPA PASSWORD (Tetap Sama)
     document.getElementById('form-forgot').addEventListener('submit', async (e) => {
         e.preventDefault();
         const email = document.getElementById('forgot-email').value;
@@ -1608,6 +1576,7 @@
             alert("Gagal mereset password: " + err.message);
         }
     });
+
       // 4. AKSI LOGOUT SIDEBAR
     const btnSidebarLogout = document.getElementById('btn-sidebar-logout');
     if (btnSidebarLogout) {
