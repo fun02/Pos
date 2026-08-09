@@ -1146,43 +1146,6 @@
 })();
 </script>
 
-    // 3. FUNGSI UTILITAS UI (Toast & Loading)
-    const toastContainer = document.getElementById('toast-container');
-    
-    const showToast = (message, type = 'error') => {
-        const toast = document.createElement('div');
-        const colors = {
-            error: 'bg-red-500/10 border-red-500/50 text-red-400',
-            success: 'bg-green-500/10 border-green-500/50 text-green-400'
-        };
-        const icon = type === 'error' ? 'x-circle' : 'check-circle';
-        
-        toast.className = `toast-enter flex items-center gap-3 p-4 rounded-xl border backdrop-blur-md shadow-lg pointer-events-auto ${colors[type]}`;
-        toast.innerHTML = `<i data-lucide="${icon}" class="w-5 h-5 shrink-0"></i><p class="text-sm font-medium">${message}</p>`;
-        
-        toastContainer.appendChild(toast);
-        lucide.createIcons();
-
-        setTimeout(() => {
-            toast.classList.replace('toast-enter', 'toast-leave');
-            setTimeout(() => toast.remove(), 300);
-        }, 4000);
-    };
-
-    const setLoading = (btnId, isLoading, text) => {
-        const btn = document.getElementById(btnId);
-        const span = btn.querySelector('span');
-        if (isLoading) {
-            btn.disabled = true;
-            btn.dataset.originalText = span.innerText;
-            btn.innerHTML = `<div class="spinner"></div><span>${text}</span>`;
-        } else {
-            btn.disabled = false;
-            btn.innerHTML = `<span>${btn.dataset.originalText}</span>`;
-        }
-    };
-  
-</script>
    <!-- TAMPILAN AUTH (Sign In, Sign Up, Lupa Password) -->
 <div id="auth-view" class="fixed inset-0 z-[99999] bg-slate-900 flex items-center justify-center p-4">
     <div class="glass max-w-md w-full p-8 rounded-2xl shadow-2xl space-y-6 bg-slate-800 text-white border border-slate-700">
