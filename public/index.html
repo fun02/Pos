@@ -1103,24 +1103,9 @@
                     <div><label class="text-xs font-medium block mb-1">Telepon</label><input id="set-store-phone" type="text" value="${Utils.escHtml(getSetting('store_phone',''))}" class="w-full px-3 py-2.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-sm outline-none"></div>
                     <div><label class="text-xs font-medium block mb-1">PPN (%)</label><input id="set-tax-rate" type="number" value="${getSetting('tax_rate','11')}" min="0" max="100" class="w-full px-3 py-2.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-sm outline-none"></div>
                 </div>
-                <h3 class="font-semibold text-sm pt-3">Role Aktif (untuk tampilan UI)</h3>
-                <div class="flex gap-2">
-                    <button class="role-btn px-4 py-2 rounded-lg text-sm font-medium transition ${currentRole==='admin'?'bg-primary text-white':'bg-slate-200 dark:bg-slate-700'}" data-role="admin">Admin</button>
-                    <button class="role-btn px-4 py-2 rounded-lg text-sm font-medium transition ${currentRole==='supervisor'?'bg-primary text-white':'bg-slate-200 dark:bg-slate-700'}" data-role="supervisor">Supervisor</button>
-                    <button class="role-btn px-4 py-2 rounded-lg text-sm font-medium transition ${currentRole==='kasir'?'bg-primary text-white':'bg-slate-200 dark:bg-slate-700'}" data-role="kasir">Kasir</button>
-                </div>
                 <button id="btn-save-settings" class="px-5 py-2.5 bg-primary text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition mt-4">Simpan Pengaturan</button>
             </div>
         `;
-
-        container.querySelectorAll('.role-btn').forEach(b=>b.addEventListener('click',()=>{
-            currentRole=b.dataset.role;
-            document.getElementById('current-role').textContent=currentRole.charAt(0).toUpperCase()+currentRole.slice(1);
-            document.getElementById('user-avatar').textContent=currentRole.charAt(0).toUpperCase();
-            document.getElementById('user-name').textContent=currentRole.charAt(0).toUpperCase()+currentRole.slice(1);
-            renderNav();
-            renderPengaturan(container);
-        }));
 
         document.getElementById('btn-save-settings')?.addEventListener('click',async()=>{
             Loading.show();
@@ -1138,6 +1123,7 @@
             Loading.hide();
         });
     }
+
         // ---- Init ----
     async function init() {
         Loading.show();
