@@ -1167,6 +1167,19 @@
 
         <!-- FORM 2: SIGN UP / DAFTAR -->
         <form id="form-signup" class="space-y-4 hidden">
+            <!-- Input Role Ditambahkan di Sini -->
+            <div>
+                <label class="text-xs font-medium block mb-1">Role Akun</label>
+                <div class="relative">
+                    <select id="signup-role" required class="w-full px-3 py-2.5 rounded-lg bg-slate-700 border border-slate-600 text-sm outline-none focus:ring-2 focus:ring-green-500 appearance-none">
+                        <option value="" disabled selected>Pilih Role ▼</option>
+                        <option value="admin">Admin</option>
+                        <option value="supervisor">Supervisor</option>
+                        <option value="kasir">Kasir</option>
+                    </select>
+                </div>
+            </div>
+            
             <div>
                 <label class="text-xs font-medium block mb-1">Username</label>
                 <input type="text" id="signup-username" required placeholder="nama_pengguna" class="w-full px-3 py-2.5 rounded-lg bg-slate-700 border border-slate-600 text-sm outline-none focus:ring-2 focus:ring-green-500">
@@ -1295,10 +1308,16 @@
     // 2. SIGN UP (DAFTAR)
     document.getElementById('form-signup').addEventListener('submit', async (e) => {
         e.preventDefault();
+        const role = document.getElementById('signup-role').value; // Tangkap data role
         const username = document.getElementById('signup-username').value;
         const email = document.getElementById('signup-email').value;
         const pass = document.getElementById('signup-password').value;
         const confirm = document.getElementById('signup-confirm').value;
+
+        if(!role) {
+            alert("Silakan pilih Role terlebih dahulu!");
+            return;
+        }
 
         if(pass !== confirm) {
             alert("Konfirmasi password tidak cocok!");
@@ -1308,13 +1327,16 @@
         try {
             if(window.App) App.Loading.show("Mendaftarkan akun...");
             const res = await createUserWithEmailAndPassword(auth, email, pass);
+            
+            // Menyimpan username dan role yang dipilih ke tabel users
             await setDoc(doc(db, "users", res.user.uid), {
                 username: username,
                 email: email,
-                role: "kasir",
+                role: role, 
                 createdAt: new Date().toISOString()
             });
-            alert("Registrasi berhasil! Anda otomatis masuk.");
+            
+            alert(`Registrasi ${role} berhasil! Anda otomatis masuk.`);
         } catch (err) {
             if(window.App) App.Loading.hide();
             alert("Gagal Daftar: " + err.message);
