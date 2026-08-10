@@ -436,26 +436,95 @@
     function renderDashboard(container) {
         const sales = DataService.getByType('sale');
         const products = DataService.getByType('product');
-        const today = new Date().toISOString().slice(0,10);
-        const todaySales = sales.filter(s=>s.created_at&&s.created_at.slice(0,10)===today);
+        
+        // Helper: Format tanggal ke WIB (Asia/Jakarta)
+        const getWIBDateObj = (dateInput) => {
+            const date = dateInput ? new Date(dateInput) : new Date();
+            return new Date(date.toLocaleString("en-US", { timeZone: "Asia/Jakarta" }));
+        };
+
+        const todayWIB = getWIBDateObj();
+        const todayStr = `${todayWIB.getFullYear()}-${String(todayWIB.getMonth()+1).padStart(2,'0')}-${String(todayWIB.getDate()).padStart(2,'0')}`;
+        
+        const todaySales = sales.filter(s => {
+            if(!s.created_at) return false;
+            const wib = getWIBDateObj(s.created_at);
+            const wibStr = `${wib.getFullYear()}-${String(wib.getMonth()+1).padStart(2,'0')}-${String(wib.getDate()).padStart(2,'0')}`;
+            return wibStr === todayStr;
+        });
+
         const totalRevenue = sales.reduce((a,s)=>a+parseFloat(s.grand_total||0),0);
         const todayRevenue = todaySales.reduce((a,s)=>a+parseFloat(s.grand_total||0),0);
         const totalItems = sales.reduce((a,s)=>a+parseInt(s.total_items||0),0);
         const lowStock = products.filter(p=>parseInt(p.stock||0)<=parseInt(p.min_stock||5));
 
-        // Last 7 days chart data
-        const last7 = Array.from({length:7},(_,i)=>{
-            const d=new Date(); d.setDate(d.getDate()-6+i);
-            const ds=d.toISOString().slice(0,10);
-            const rev=sales.filter(s=>s.created_at&&s.created_at.slice(0,10)===ds).reduce((a,s)=>a+parseFloat(s.grand_total||0),0);
-            return {label:d.toLocaleDateString('id-ID',{weekday:'short'}),value:rev};
-        });
-        const maxVal = Math.max(...last7.map(d=>d.value),1);
+        // --- LOGIKA GRAFIK 7 HARI (WIB) ---
+        const currentPeriod = [];
+        let prevPeriodRevenue = 0;
+        
+        // Buat array 7 hari terakhir secara berurutan (Kiri: Hari terlama, Kanan: Hari ini)
+        for (let i = 6; i >= 0; i--) {
+            const d = getWIBDateObj();
+            d.setDate(d.getDate() - i);
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            
+            currentPeriod.push({
+                dateStr: `${y}-${m}-${day}`,
+                label: d.toLocaleDateString('id-ID', { weekday: 'short' }),
+                fullDate: d.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' }),
+                rev: 0,
+                trx: 0
+            });
+        }
 
+        // Batas waktu periode sebelumnya (hari -13 sampai hari -7) untuk kalkulasi trend %
+        const prevEnd = getWIBDateObj(); prevEnd.setDate(prevEnd.getDate() - 7); prevEnd.setHours(23,59,59,999);
+        const prevStart = getWIBDateObj(); prevStart.setDate(prevStart.getDate() - 13); prevStart.setHours(0,0,0,0);
+
+        // Agregasi data penjualan ke dalam chart
+        sales.forEach(s => {
+            if(!s.created_at) return;
+            const sDate = getWIBDateObj(s.created_at);
+            const y = sDate.getFullYear();
+            const m = String(sDate.getMonth() + 1).padStart(2, '0');
+            const day = String(sDate.getDate()).padStart(2, '0');
+            const sDateStr = `${y}-${m}-${day}`;
+            
+            const rev = parseFloat(s.grand_total || 0);
+
+            // Cek apakah masuk 7 hari terakhir
+            const dayMatch = currentPeriod.find(p => p.dateStr === sDateStr);
+            if (dayMatch) {
+                dayMatch.rev += rev;
+                dayMatch.trx += 1;
+            } else if (sDate >= prevStart && sDate <= prevEnd) {
+                // Masuk ke periode 7 hari sebelumnya
+                prevPeriodRevenue += rev;
+            }
+        });
+
+        // Kalkulasi Statistik Grafik
+        const chartTotalRev = currentPeriod.reduce((sum, d) => sum + d.rev, 0);
+        const chartTotalTrx = currentPeriod.reduce((sum, d) => sum + d.trx, 0);
+        const chartAvgRev = chartTotalRev / 7;
+        
+        let trendPct = 0;
+        if (prevPeriodRevenue > 0) trendPct = ((chartTotalRev - prevPeriodRevenue) / prevPeriodRevenue) * 100;
+        else if (chartTotalRev > 0) trendPct = 100;
+        
+        const trendIcon = trendPct >= 0 ? 'trending-up' : 'trending-down';
+        const trendClass = trendPct >= 0 ? 'text-success bg-success/10' : 'text-danger bg-danger/10';
+        const trendText = (trendPct >= 0 ? '+' : '') + trendPct.toFixed(1).replace('.', ',') + '%';
+
+        // --- RENDER HTML DASHBOARD ---
         container.innerHTML = `
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div><h2 class="font-bold text-xl">Dashboard</h2><p class="text-sm text-slate-500 mt-0.5">Ringkasan aktivitas toko</p></div>
             </div>
+            
+            <!-- Kartu Statistik (Tetap) -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 slide-up">
                 <div class="glass rounded-xl p-4 flex items-center gap-4 hover:shadow-lg transition-shadow">
                     <div class="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center"><i data-lucide="trending-up" class="w-5 h-5 text-primary"></i></div>
@@ -474,22 +543,150 @@
                     <div><p class="text-xs text-slate-500">Pendapatan Hari Ini</p><p class="text-lg font-bold">${Utils.fmt(todayRevenue)}</p></div>
                 </div>
             </div>
-            <!-- Simple Bar Chart -->
-            <div class="glass rounded-xl p-5 slide-up">
-                <h3 class="text-sm font-semibold mb-4">Penjualan 7 Hari Terakhir</h3>
-                <div class="flex items-end gap-2 h-40">
-                    ${last7.map(d=>`<div class="flex-1 flex flex-col items-center gap-1">
-                        <div class="w-full rounded-t-md bg-primary/80 transition-all" style="height:${maxVal?Math.max((d.value/maxVal)*100,2):2}%"></div>
-                        <span class="text-[10px] text-slate-500">${d.label}</span>
-                    </div>`).join('')}
+
+            <!-- GRAFIK PENJUALAN 7 HARI (REDESIGN) -->
+            <div class="glass rounded-[20px] p-5 slide-up">
+                <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
+                    <div>
+                        <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-100 mb-1">Penjualan 7 Hari Terakhir</h3>
+                        <div class="flex items-center gap-2 mt-2">
+                            <span class="text-2xl font-bold text-slate-800 dark:text-white">${Utils.fmt(chartTotalRev)}</span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 ${trendClass}">
+                                <i data-lucide="${trendIcon}" class="w-3 h-3"></i> ${trendText}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="flex gap-4">
+                        <div>
+                            <p class="text-[10px] text-slate-500">Jumlah Transaksi</p>
+                            <p class="text-sm font-bold text-slate-700 dark:text-slate-200">${chartTotalTrx} <span class="text-[10px] font-normal text-slate-400">trx</span></p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-slate-500">Rata-rata / Hari</p>
+                            <p class="text-sm font-bold text-slate-700 dark:text-slate-200">${Utils.fmt(Math.round(chartAvgRev))}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Container Grafik -->
+                <div id="chart-7days" class="w-full min-h-[220px] relative">
+                    <!-- Loading / Empty State Element will go here if needed -->
                 </div>
             </div>
+
+            <!-- Warning Stok (Tetap) -->
             ${lowStock.length?`<div class="glass rounded-xl p-5 slide-up border-l-4 border-warning">
                 <h3 class="text-sm font-semibold mb-2 flex items-center gap-2"><i data-lucide="alert-triangle" class="w-4 h-4 text-warning"></i>Stok Rendah (${lowStock.length} produk)</h3>
                 <div class="space-y-1 text-xs">${lowStock.slice(0,5).map(p=>`<div class="flex justify-between"><span>${Utils.escHtml(p.name)}</span><span class="text-danger font-medium">${p.stock} tersisa</span></div>`).join('')}</div>
             </div>`:''}
         `;
         lucide.createIcons();
+
+        // --- INIT APEXCHARTS ---
+        const chartEl = document.getElementById('chart-7days');
+        if (chartEl) {
+            if (sales.length === 0) {
+                // Empty State
+                chartEl.innerHTML = `
+                    <div class="absolute inset-0 flex flex-col items-center justify-center text-slate-400 fade-in">
+                        <i data-lucide="bar-chart-2" class="w-10 h-10 mb-2 opacity-30"></i>
+                        <p class="text-xs font-medium">Belum ada data penjualan</p>
+                    </div>`;
+                lucide.createIcons();
+            } else {
+                // Konfigurasi ApexCharts Modern & Responsif
+                const isDark = document.documentElement.classList.contains('dark');
+                const options = {
+                    series: [{
+                        name: 'Penjualan',
+                        data: currentPeriod.map(d => d.rev)
+                    }],
+                    chart: {
+                        type: 'area',
+                        height: 250,
+                        parentHeightOffset: 0,
+                        toolbar: { show: false },
+                        zoom: { enabled: false },
+                        fontFamily: 'DM Sans, sans-serif',
+                        animations: {
+                            enabled: true,
+                            easing: 'easeinout',
+                            speed: 800,
+                            animateGradually: { enabled: true, delay: 150 },
+                            dynamicAnimation: { enabled: true, speed: 350 }
+                        }
+                    },
+                    colors: ['#2563EB'], // Warna Primary
+                    fill: {
+                        type: 'gradient',
+                        gradient: {
+                            shadeIntensity: 1,
+                            opacityFrom: 0.45,
+                            opacityTo: 0.05,
+                            stops: [0, 100]
+                        }
+                    },
+                    dataLabels: { enabled: false },
+                    stroke: { curve: 'smooth', width: 3 },
+                    xaxis: {
+                        categories: currentPeriod.map(d => d.label),
+                        axisBorder: { show: false },
+                        axisTicks: { show: false },
+                        labels: {
+                            style: { colors: isDark ? '#64748b' : '#94a3b8', fontSize: '11px', fontWeight: 500 },
+                            offsetY: 4
+                        },
+                        crosshairs: {
+                            stroke: { color: '#94a3b8', width: 1, dashArray: 3 }
+                        }
+                    },
+                    yaxis: {
+                        labels: {
+                            formatter: (value) => {
+                                if(value === 0) return 'Rp0';
+                                if (value >= 1000000) return 'Rp' + (value / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+                                if (value >= 1000) return 'Rp' + (value / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+                                return 'Rp' + value;
+                            },
+                            style: { colors: isDark ? '#64748b' : '#94a3b8', fontSize: '10px', fontWeight: 500 },
+                            offsetX: -10
+                        }
+                    },
+                    grid: {
+                        borderColor: isDark ? '#334155' : '#f1f5f9',
+                        strokeDashArray: 4,
+                        xaxis: { lines: { show: false } },
+                        yaxis: { lines: { show: true } },
+                        padding: { top: 0, right: 0, bottom: 0, left: 10 }
+                    },
+                    markers: {
+                        size: 4,
+                        colors: [isDark ? '#1e293b' : '#ffffff'],
+                        strokeColors: '#2563EB',
+                        strokeWidth: 2,
+                        hover: { size: 6, sizeOffset: 2 }
+                    },
+                    tooltip: {
+                        custom: function({series, seriesIndex, dataPointIndex, w}) {
+                            const data = currentPeriod[dataPointIndex];
+                            // Desain Tooltip Custom
+                            return `
+                                <div class="px-3 py-2.5 bg-white dark:bg-slate-800 shadow-xl border border-slate-100 dark:border-slate-700 rounded-xl" style="min-width: 130px;">
+                                    <div class="text-[10px] text-slate-400 font-medium mb-1.5">${data.fullDate}</div>
+                                    <div class="font-bold text-slate-800 dark:text-white text-sm mb-1">${Utils.fmt(data.rev)}</div>
+                                    <div class="text-[11px] text-slate-600 dark:text-slate-300 flex items-center gap-1.5 font-medium">
+                                        <div class="w-1.5 h-1.5 rounded-full bg-secondary"></div> ${data.trx} Transaksi
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    }
+                };
+                
+                const chart = new ApexCharts(chartEl, options);
+                chart.render();
+            }
+        }
     }
 
     // ---- Produk ----
