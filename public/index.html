@@ -75,12 +75,29 @@
    </div>
   </aside>
 <!-- Main Content -->
-  <div class="lg:ml-64 min-h-screen flex flex-col"><!-- Top Nav -->
-   <header class="sticky top-0 z-30 glass border-b border-slate-200 dark:border-slate-700 px-4 lg:px-6 py-3 flex items-center gap-4"><button onclick="App.toggleSidebar()" class="lg:hidden p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"><i data-lucide="menu" class="w-5 h-5"></i></button>
-    <div class="flex-1 max-w-md relative hidden sm:block"><i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i> <input id="global-search" type="text" placeholder="Cari produk, transaksi..." class="w-full pl-10 pr-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-700 border-0 text-sm focus:ring-2 focus:ring-primary/50 outline-none transition">
+  <div class="lg:ml-64 min-h-screen flex flex-col">
+<!-- Top Nav -->
+   <header class="sticky top-0 z-30 glass border-b border-slate-200 dark:border-slate-700 px-4 lg:px-6 py-3 flex items-center gap-4">
+    <button onclick="App.toggleSidebar()" class="lg:hidden p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">
+     <i data-lucide="menu" class="w-5 h-5"></i>
+    </button>
+    
+    <!-- Teks Desain POS FAAN STORE -->
+    <div class="flex items-center gap-1.5 italic cursor-default select-none">
+     <span class="text-lg sm:text-xl font-black text-slate-800 dark:text-white tracking-wide">POS</span>
+     <span class="text-lg sm:text-xl font-black text-primary drop-shadow-[0_0_8px_rgba(37,99,235,0.5)] tracking-wide">FAAN</span>
+     <span class="text-xs sm:text-sm font-bold text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-widest px-1 border-b-2 border-primary">STORE</span>
     </div>
-    <div class="flex-1 sm:hidden"></div>
-   </header><!-- Pages -->
+
+    <!-- Elemen kosong untuk mendorong ikon pencarian ke ujung kanan -->
+    <div class="flex-1"></div>
+
+    <!-- Ikon Pencarian -->
+    <button class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition text-slate-600 dark:text-slate-300">
+     <i data-lucide="search" class="w-5 h-5"></i>
+    </button>
+   </header>
+    <!-- Pages -->
    <main class="flex-1 p-4 lg:p-6 fade-in"><!-- Dashboard -->
     <section id="page-dashboard" class="page-section active space-y-5"></section><!-- Penjualan -->
     <section id="page-penjualan" class="page-section space-y-5"></section><!-- Produk -->
