@@ -1556,6 +1556,72 @@ container.querySelector('#btn-add-sale')?.addEventListener('click', (e) => {
         saleCart=[];
     }
 
+          async function saveSaleTransaction(print) {
+        if(!saleCart.length){Toast.show('Keranjang masih kosong!','warning');return;}
+        let subtotal=0,discTotal=0;
+        saleCart.forEach(c=>{const raw=c.price*c.qty;discTotal+=raw*c.disc/100;subtotal+=raw;});
+        const afterDisc=subtotal-discTotal-saleVoucher;
+        const tax=Math.round(Math.max(0,afterDisc)*saleTaxRate/100);
+        const grand=Math.round(Math.max(0,afterDisc)+tax);
+        const paid=parseFloat(document.getElementById('pos-paid')?.value||0);
+        if(salePayment==='Cash'&&paid<grand){Toast.show('Nominal bayar kurang!','danger');return;}
+
+        const customers=DataService.getByType('customer');
+        const custId=document.getElementById('pos-customer')?.value;
+        const cust=customers.find(c=>c.entity_id===custId);
+
+        const code='TRX-'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'-'+Utils.id().slice(0,4).toUpperCase();
+        const saleData={
+            code, customer_id:custId||'', customer_name:cust?.name||'Umum',
+            items:JSON.stringify(saleCart), total_items:String(saleCart.reduce((a,c)=>a+c.qty,0)),
+            subtotal:String(subtotal), discount:String(Math.round(discTotal)), voucher:String(saleVoucher),
+            tax:String(tax), grand_total:String(grand),
+            payment_method:salePayment, paid:String(paid), change:String(Math.max(0,paid-grand)),
+            status:'Lunas', cashier:document.getElementById('user-name')?.textContent||'Admin'
+        };
+
+        Loading.show();
+        const id = await DataService.create('sale',saleData);
+
+        // ==========================================
+        // FITUR NOTIFIKASI TELEGRAM OTOMATIS
+        // ==========================================
+        // GANTI TOKEN DAN CHAT ID DI BAWAH INI
+        const botToken = '8725735477:AAHOj2f7rJhiSLdvF7mGWpGodlvBFs03dOI'; 
+        const chatId = '8419306331';
+        
+        const pesanTelegram = `💰 *TRANSAKSI BARU MASUK!* 💰\n\n` +
+                              `*No. Nota:* ${code}\n` +
+                              `*Kasir:* ${saleData.cashier}\n` +
+                              `*Pelanggan:* ${saleData.customer_name}\n` +
+                              `*Metode:* ${salePayment}\n` +
+                              `*Item Terjual:* ${saleData.total_items} item\n` +
+                              `*Total Pembayaran:* ${Utils.fmt(grand)}\n\n` +
+                              `_Waktu: ${new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })}_`;
+
+        // Kirim ke API Telegram berjalan di background (tanpa await agar kasir tidak lemot)
+        fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: chatId,
+                text: pesanTelegram,
+                parse_mode: 'Markdown'
+            })
+        }).catch(err => console.error("Gagal mengirim notif Telegram:", err));
+        // ==========================================
+
+        // Reduce product stock
+        for(const item of saleCart){
+            const prod=DataService.getById(item.product_id);
+            if(prod){const ns=Math.max(0,parseInt(prod.stock||0)-item.qty);await DataService.update(item.product_id,{...prod,stock:String(ns)});}
+        }
+        Loading.hide();
+        if(id&&print)printReceipt(id,'80');
+        closeModal();
+        saleCart=[];
+    }
+
     function viewSale(entityId) {
         const s=DataService.getById(entityId);
         if(!s)return;
