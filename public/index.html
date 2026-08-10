@@ -113,9 +113,9 @@
         <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex items-center gap-3 bg-slate-50 dark:bg-slate-800/80">
             <i data-lucide="search" class="w-5 h-5 text-primary"></i>
             <input type="text" id="global-search-input" placeholder="Cari nama produk, kode transaksi, atau pelanggan..." class="w-full bg-transparent border-0 text-sm outline-none text-slate-800 dark:text-slate-200 placeholder-slate-400 font-medium" autocomplete="off">
-            <button onclick="closeGlobalSearch()" class="p-1 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 transition">
-                <span class="text-[10px] font-bold border border-slate-300 dark:border-slate-600 rounded px-1.5 py-0.5 shadow-sm bg-white dark:bg-slate-900">ESC</span>
-            </button>
+            <button type="button" onmousedown="event.preventDefault();" onclick="document.getElementById('global-search-modal').classList.add('hidden'); document.getElementById('global-search-modal').classList.remove('flex');" class="p-1 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 transition cursor-pointer">
+    <span class="text-[10px] font-bold border border-slate-300 dark:border-slate-600 rounded px-1.5 py-0.5 shadow-sm bg-white dark:bg-slate-900 pointer-events-none">ESC</span>
+</button>
         </div>
         
         <!-- Area Hasil -->
