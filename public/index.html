@@ -92,11 +92,41 @@
     <!-- Elemen kosong untuk mendorong ikon pencarian ke ujung kanan -->
     <div class="flex-1"></div>
 
-    <!-- Ikon Pencarian -->
-    <button class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition text-slate-600 dark:text-slate-300">
+        <!-- Ikon Pencarian -->
+    <button onclick="openGlobalSearch()" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition text-slate-600 dark:text-slate-300 shadow-sm">
      <i data-lucide="search" class="w-5 h-5"></i>
     </button>
    </header>
+    <!-- Modal Pencarian Global -->
+<div id="global-search-modal" class="fixed inset-0 z-[110] hidden items-start justify-center pt-16 sm:pt-24 px-4 bg-slate-900/40 backdrop-blur-sm transition-opacity" onclick="if(event.target===this) closeGlobalSearch()">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-700 animate-slide-down">
+        
+        <!-- Header Pencarian -->
+        <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex items-center gap-3 bg-slate-50 dark:bg-slate-800/80">
+            <i data-lucide="search" class="w-5 h-5 text-primary"></i>
+            <input type="text" id="global-search-input" placeholder="Cari nama produk, kode transaksi, atau pelanggan..." class="w-full bg-transparent border-0 text-sm outline-none text-slate-800 dark:text-slate-200 placeholder-slate-400 font-medium" autocomplete="off">
+            <button onclick="closeGlobalSearch()" class="p-1 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 transition">
+                <span class="text-[10px] font-bold border border-slate-300 dark:border-slate-600 rounded px-1.5 py-0.5 shadow-sm bg-white dark:bg-slate-900">ESC</span>
+            </button>
+        </div>
+        
+        <!-- Area Hasil -->
+        <div id="global-search-results" class="max-h-[60vh] overflow-y-auto p-2 hidden"></div>
+        
+        <!-- Area Kosong (Tidak Ditemukan) -->
+        <div id="global-search-empty" class="p-10 text-center text-slate-400 hidden">
+            <i data-lucide="search-x" class="w-12 h-12 mx-auto mb-3 opacity-30"></i>
+            <p class="text-sm font-semibold">Tidak ada hasil yang cocok</p>
+            <p class="text-xs mt-1">Coba gunakan kata kunci atau ejaan yang lain.</p>
+        </div>
+        
+        <!-- Area Idle (Awal Dibuka) -->
+        <div id="global-search-idle" class="p-10 text-center text-slate-400">
+            <p class="text-xs font-medium bg-slate-100 dark:bg-slate-700/50 inline-block px-4 py-2 rounded-xl">Ketik sesuatu untuk mulai mencari di seluruh database toko...</p>
+        </div>
+    </div>
+</div>
+
     <!-- Pages -->
    <main class="flex-1 p-4 lg:p-6 fade-in"><!-- Dashboard -->
     <section id="page-dashboard" class="page-section active space-y-5"></section><!-- Penjualan -->
