@@ -345,16 +345,22 @@
         lucide.createIcons();
     }
 
-    function navigate(page) {
+    function navigate(page, pushHistory = true) {
         currentPage = page;
         document.querySelectorAll('.page-section').forEach(s=>s.classList.remove('active'));
         const el = document.getElementById('page-'+page);
         if(el) el.classList.add('active');
         renderNav();
         renderPage(page);
-        // Close mobile sidebar
+        
+        // Tutup sidebar mobile
         const sb=document.getElementById('sidebar');
         if(!sb.classList.contains('-translate-x-full')&&window.innerWidth<1024) toggleSidebar();
+
+        // Tambahkan state ke riwayat browser agar tombol kembali (back) berfungsi
+        if (pushHistory) {
+            window.history.pushState({ page: page }, '', '#' + page);
+        }
     }
 
     function toggleSidebar() {
@@ -1724,8 +1730,16 @@ container.querySelector('#btn-add-sale')?.addEventListener('click', (e) => {
         // ---- Init ----
         async function init() {
         if(DataService.initFirestore) await DataService.initFirestore(); // Tarik data dari Cloud Firestore
-        renderNav();
-        renderPage(currentPage);
+        
+        // Baca URL hash saat ini (jika ada) atau kembalikan ke dashboard
+        const hashPage = window.location.hash.replace('#', '');
+        const startPage = menuItems.some(m => m.id === hashPage) ? hashPage : 'dashboard';
+        
+        // Set riwayat awal browser tanpa push ganda
+        window.history.replaceState({ page: startPage }, '', '#' + startPage);
+        
+        // Navigasi awal (false = jangan buat riwayat duplikat)
+        navigate(startPage, false); 
         lucide.createIcons();
     }
 
@@ -2103,6 +2117,31 @@ document.addEventListener("DOMContentLoaded", () => {
                 if(window.lucide) lucide.createIcons();
             }, 250);
         });
+    }
+});
+
+  // ==========================================
+// PENDETEKSI TOMBOL KEMBALI DI HANDPHONE
+// ==========================================
+window.addEventListener('popstate', (event) => {
+    // 1. Tutup modal form/kasir jika sedang terbuka
+    if (window.App && typeof window.App.closeModal === 'function') {
+        window.App.closeModal();
+    }
+    
+    // 2. Tutup modal pencarian global (jika sedang terbuka)
+    const globalSearch = document.getElementById('global-search-modal');
+    if (globalSearch && !globalSearch.classList.contains('hidden')) {
+        globalSearch.classList.add('hidden');
+        globalSearch.classList.remove('flex');
+    }
+
+    // 3. Navigasi mundur sesuai urutan riwayat
+    if (event.state && event.state.page) {
+        window.App.navigate(event.state.page, false); // false = jangan buat history baru
+    } else {
+        // Fallback jika tidak ada state
+        window.App.navigate('dashboard', false);
     }
 });
 </script>
