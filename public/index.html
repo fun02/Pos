@@ -49,6 +49,7 @@
     to { opacity: 1; transform: translateY(0) scale(1); } 
 }
 .animate-slide-down { animation: slideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+  
 /* ==========================================================================
    FAAN STORE Design System v2.0 - Core Styles (Dashboard Scope)
    ========================================================================== */
@@ -131,6 +132,67 @@
 .dark .es-table tbody tr:hover {
   background-color: #1e293b/50;
 }
+    /* ==========================================================================
+   FAAN STORE Design System v2.0 - Header & Sidebar Scope
+   ========================================================================== */
+
+/* Enterprise Header Layout */
+.es-header {
+  background-color: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  height: 3.5rem; /* 56px Compact Desktop Height */
+}
+.dark .es-header {
+  background-color: #0f172a;
+  border-bottom-color: #1e293b;
+}
+
+/* Enterprise Sidebar Layout */
+.es-sidebar {
+  background-color: #ffffff;
+  border-right: 1px solid #e2e8f0;
+  width: 15rem; /* 240px Fixed Navigation Width */
+}
+.dark .es-sidebar {
+  background-color: #0f172a;
+  border-right-color: #1e293b;
+}
+
+/* Nav Link Base Style */
+.es-nav-item {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem; /* 6px */
+  font-size: 0.8125rem; /* 13px High-density text */
+  font-weight: 500;
+  color: #64748b;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.dark .es-nav-item {
+  color: #94a3b8;
+}
+
+.es-nav-item:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+.dark .es-nav-item:hover {
+  background-color: #1e293b;
+  color: #f8fafc;
+}
+
+/* Active Nav Link State */
+.es-nav-item.active {
+  background-color: #eff6ff;
+  color: #2563eb;
+  font-weight: 600;
+}
+.dark .es-nav-item.active {
+  background-color: #1e293b;
+  color: #60a5fa;
+}
+
   </style>
   
   <!-- ZXing Barcode Scanner UMD Library -->
@@ -443,11 +505,6 @@
         }
     }
 
-    function toggleSidebar() {
-        const s=document.getElementById('sidebar'),o=document.getElementById('sidebar-overlay');
-        s.classList.toggle('-translate-x-full'); o.classList.toggle('hidden');
-    }
-
     function toggleDarkMode() { document.documentElement.classList.toggle('dark'); }
 
     // ---- Generic CRUD Table Builder ----
@@ -461,51 +518,69 @@
             return data;
         }
 
-        function render() {
-            const data = getData();
-            const total = data.length;
-            const pages = Math.max(1, Math.ceil(total/pageSize));
-            if(page>pages) page=pages;
-            const start = (page-1)*pageSize;
-            const slice = data.slice(start, start+pageSize);
+        /**
+ * Phase 2 Implementation: Header Component
+ */
+function renderHeader() {
+  const headerEl = document.getElementById('app-header');
+  if (!headerEl) return;
 
-            container.innerHTML = `
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div><h2 class="font-bold text-xl">${title}</h2><p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">${subtitle}</p></div>
-                    <div class="flex gap-2">
-                        <button class="btn-add btn-ripple flex items-center gap-2 px-4 py-2.5 bg-primary text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition shadow-lg shadow-primary/25"><i data-lucide="plus" class="w-4 h-4"></i>Tambah</button>
-                        ${extraButtons}
-                    </div>
-                </div>
-                <div class="glass rounded-xl overflow-hidden slide-up">
-                    <div class="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-700">
-                        <div class="flex items-center gap-2"><span class="text-xs text-slate-500">Tampilkan</span><select class="psize-sel px-2 py-1 rounded bg-slate-100 dark:bg-slate-700 text-xs outline-none"><option ${pageSize===10?'selected':''}>10</option><option ${pageSize===25?'selected':''}>25</option><option ${pageSize===50?'selected':''}>50</option></select></div>
-                        <div class="relative"><i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400"></i><input type="text" placeholder="Cari..." value="${Utils.escHtml(search)}" class="search-input pl-9 pr-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-700 border-0 text-xs outline-none focus:ring-2 focus:ring-primary/50 w-full sm:w-56"></div>
-                    </div>
-                    <div class="overflow-x-auto"><table class="w-full text-xs"><thead class="bg-slate-50 dark:bg-slate-700/50"><tr>
-                        <th class="px-4 py-3 text-left font-semibold">No</th>
-                        ${columns.map(c=>`<th class="px-4 py-3 text-left font-semibold cursor-pointer hover:text-primary sort-th" data-col="${c.key}">${c.label} ${sortCol===c.key?(sortDir==='asc'?'↑':'↓'):''}</th>`).join('')}
-                        <th class="px-4 py-3 text-center font-semibold">Aksi</th>
-                    </tr></thead><tbody>
-                        ${slice.length?slice.map((r,i)=>`<tr class="border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
-                            <td class="px-4 py-3">${start+i+1}</td>
-                            ${onRenderRow?onRenderRow(r):columns.map(c=>`<td class="px-4 py-3">${Utils.escHtml(String(r[c.key]||'-'))}</td>`).join('')}
-                            <td class="px-4 py-3 text-center flex items-center justify-center gap-1">
-                                <button class="btn-edit p-1.5 rounded-lg hover:bg-primary/10 text-primary transition" data-id="${r.entity_id}"><i data-lucide="edit" class="w-4 h-4"></i></button>
-                                <button class="btn-del p-1.5 rounded-lg hover:bg-danger/10 text-danger transition" data-id="${r.entity_id}"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                            </td>
-                        </tr>`).join(''):`<tr><td colspan="${columns.length+2}" class="px-4 py-8 text-center text-slate-400">Belum ada data</td></tr>`}
-                    </tbody></table></div>
-                    <div class="p-4 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-200 dark:border-slate-700">
-                        <p class="text-xs text-slate-500">Menampilkan ${total?start+1:0}-${Math.min(start+pageSize,total)} dari ${total} data</p>
-                        <div class="flex gap-1">
-                            <button class="btn-prev px-3 py-1.5 rounded bg-slate-100 dark:bg-slate-700 text-xs hover:bg-slate-200 transition ${page<=1?'opacity-50':''}">Prev</button>
-                            ${Array.from({length:Math.min(pages,5)},(_,i)=>{const p2=i+1;return `<button class="btn-page px-3 py-1.5 rounded text-xs ${p2===page?'bg-primary text-white':'bg-slate-100 dark:bg-slate-700 hover:bg-slate-200'}" data-p="${p2}">${p2}</button>`;}).join('')}
-                            <button class="btn-next px-3 py-1.5 rounded bg-slate-100 dark:bg-slate-700 text-xs hover:bg-slate-200 transition ${page>=pages?'opacity-50':''}">Next</button>
-                        </div>
-                    </div>
-                </div>
-            `;
+  headerEl.className = "es-header sticky top-0 z-30 flex items-center justify-between px-4 sm:px-6";
+  headerEl.innerHTML = `
+    <!-- Left: Mobile Sidebar Trigger & Brand Identifier -->
+    <div class="flex items-center gap-3">
+      <button id="sidebar-toggle-btn" onclick="toggleSidebar()" class="lg:hidden p-1.5 rounded text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 dark:text-slate-400">
+        <i data-lucide="menu" class="w-5 h-5"></i>
+      </button>
+      
+      <div class="flex items-center gap-2 cursor-pointer" onclick="navigate('dashboard')">
+        <div class="w-7 h-7 rounded bg-blue-600 flex items-center justify-center text-white font-bold text-xs tracking-wider">
+          FS
+        </div>
+        <span class="font-bold text-base tracking-tight text-slate-900 dark:text-white">FAAN<span class="text-blue-600 dark:text-blue-400">STORE</span></span>
+        <span class="hidden sm:inline-block text-[10px] font-semibold uppercase tracking-widest px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 font-mono-num">v2.0</span>
+      </div>
+    </div>
+
+    <!-- Center: Global Search Bar -->
+    <div class="hidden md:flex items-center flex-1 max-w-md mx-8">
+      <button onclick="openGlobalSearch()" class="w-full flex items-center justify-between px-3 py-1.5 rounded border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-400 hover:border-slate-400 dark:hover:border-slate-600 transition-colors text-xs">
+        <div class="flex items-center gap-2">
+          <i data-lucide="search" class="w-3.5 h-3.5"></i>
+          <span>Cari produk, transaksi, atau pelanggan...</span>
+        </div>
+        <kbd class="hidden lg:inline-block px-1.5 py-0.5 text-[10px] font-mono text-slate-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded">Ctrl K</kbd>
+      </button>
+    </div>
+
+    <!-- Right: Quick Actions & Profile -->
+    <div class="flex items-center gap-2">
+      <!-- Quick POS Button -->
+      <button onclick="navigate('pos')" class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded bg-blue-600 hover:bg-blue-700 text-white transition-colors">
+        <i data-lucide="shopping-cart" class="w-3.5 h-3.5"></i>
+        <span class="hidden sm:inline">Kasir / POS</span>
+      </button>
+
+      <!-- Theme Switcher -->
+      <button id="theme-toggle-btn" onclick="toggleTheme()" class="p-2 rounded text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors" title="Beralih Tema">
+        <i data-lucide="moon" class="w-4 h-4 dark:hidden"></i>
+        <i data-lucide="sun" class="w-4 h-4 hidden dark:block"></i>
+      </button>
+
+      <div class="h-4 w-px bg-slate-200 dark:border-slate-800 mx-1"></div>
+
+      <!-- User Profile Avatar -->
+      <div class="flex items-center gap-2.5 pl-1">
+        <div class="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600">
+          A
+        </div>
+        <div class="hidden xl:block text-left">
+          <div class="text-xs font-semibold text-slate-800 dark:text-slate-200 leading-tight">Admin Toko</div>
+          <div class="text-[10px] text-slate-400 leading-tight">Administrator</div>
+        </div>
+      </div>
+    </div>
+  `;
             // Bind events
             container.querySelector('.btn-add')?.addEventListener('click',()=>openForm(null));
             container.querySelector('.search-input')?.addEventListener('input', Utils.debounce(e=>{search=e.target.value;page=1;render();}));
@@ -519,8 +594,83 @@
                 const yes=await showConfirm('Hapus Data','Apakah Anda yakin ingin menghapus data ini?');
                 if(yes) { await DataService.remove(b.dataset.id); }
             }));
-            lucide.createIcons();
-        }
+  if (window.lucide) lucide.createIcons();
+}
+
+/**
+ * Phase 2 Implementation: Sidebar Component
+ */
+function renderSidebar() {
+  const sidebarEl = document.getElementById('app-sidebar');
+  if (!sidebarEl) return;
+
+  const currentRoute = window.currentRoute || 'dashboard';
+
+  const menuItems = [
+    { id: 'dashboard', label: 'Dashboard Overview', icon: 'layout-dashboard' },
+    { id: 'pos', label: 'Kasir / POS', icon: 'shopping-cart' },
+    { id: 'products', label: 'Katalog Produk', icon: 'package' },
+    { id: 'stock', label: 'Manajemen Stok', icon: 'boxes' },
+    { id: 'sales', label: 'Riwayat Penjualan', icon: 'receipt' },
+    { id: 'reports', label: 'Laporan Finansial', icon: 'bar-chart-3' },
+    { id: 'settings', label: 'Pengaturan Toko', icon: 'settings' }
+  ];
+
+  sidebarEl.className = "es-sidebar fixed inset-y-0 left-0 z-40 transform -translate-x-full lg:translate-x-0 transition-transform duration-200 ease-in-out flex flex-col pt-14 lg:pt-0";
+
+  sidebarEl.innerHTML = `
+    <div class="flex flex-col h-full justify-between p-3">
+      <!-- Main Navigation Menu -->
+      <div class="space-y-1">
+        <div class="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+          Navigasi Utama
+        </div>
+        <nav class="space-y-0.5">
+          ${menuItems.map(item => {
+            const isActive = currentRoute === item.id;
+            return `
+              <a href="#${item.id}" onclick="navigate('${item.id}'); closeMobileSidebar(); return false;" class="es-nav-item ${isActive ? 'active' : ''}">
+                <i data-lucide="${item.icon}" class="w-4 h-4 mr-2.5 flex-shrink-0"></i>
+                <span class="truncate">${item.label}</span>
+              </a>
+            `;
+          }).join('')}
+        </nav>
+      </div>
+
+      <!-- Sidebar Bottom System Status -->
+      <div class="pt-3 border-t border-slate-200 dark:border-slate-800">
+        <div class="px-3 py-2.5 rounded bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-800">
+          <div class="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300">
+            <span>Database Status</span>
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          </div>
+          <div class="text-[10px] text-slate-400 mt-0.5 font-mono-num">
+            Firestore Connected
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  if (window.lucide) lucide.createIcons();
+}
+
+/**
+ * Mobile Sidebar Drawer Helpers
+ */
+function toggleSidebar() {
+  const sidebarEl = document.getElementById('app-sidebar');
+  if (sidebarEl) {
+    sidebarEl.classList.toggle('-translate-x-full');
+  }
+}
+
+function closeMobileSidebar() {
+  const sidebarEl = document.getElementById('app-sidebar');
+  if (sidebarEl && window.innerWidth < 1024) {
+    sidebarEl.classList.add('-translate-x-full');
+  }
+}        
 
         function openForm(entityId) {
             const existing = entityId ? DataService.getById(entityId) : null;
