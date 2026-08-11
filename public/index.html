@@ -2,7 +2,6 @@
 <html lang="id" class="light"><head><script>window["__codeletBootstrap__"]=JSON.parse('{"A":"A","B":"20260803-03-c990d82","C":{"Abril Fatface":"YACgEZbkUVE,0","Alfa Slab One":"YACgEYS9sJU,0","Anton":"YACgEcYqQ-A,0","Archivo":"YAHO2-t-jNE,0","Arial":"YAGyDvJ_4Ts,0","Bebas Neue":"YACgESME5ew,0","Broken Glyph":"YADZ-exUkv0,0","Canva Sans":"YAFdJjTk5UU,0","Caveat":"YALBs2ploWQ,0","Comic Sans MS":"YAHO2VMiyZo,0","Cormorant Garamond":"YAFdJhX-538,0","Courier New":"YAGzXiGs0_8,0","DM Sans":"YAD1aU3sLnI,0","DM Serif Display":"YAD1aYG82rc,0","Forum":"YACgEcnnqB4,0","Fraunces":"YAEul-FRQw4,0","Georgia":"YAGzXkO0pEM,0","Ghost Mono":"YAHO2EIdDP0,0","Helvetica Neue":"YAFcf6CtJfI,0","Impact":"YAFcfnjI7Vk,0","Inter":"YAFdJvSyp_k,3","Iowan Old Style":"YAGNIFa8j9o,0","Jacques Francois":"YAHO2a5g66Q,0","JetBrains Mono":"YADy3sAhvXQ,0","Oleo Script":"YACgEQQ14jI,0","Playfair Display":"YAFdJhem5V8,1","Poppins":"YAE5fPSY9qM,0","Press Start 2P":"YAFyGr-8pmQ,0","Source Sans 3":"YAG4lO1Mj10,0","Space Grotesk":"YAHO2sjPCSM,0","Times New Roman":"YAGzXW3gftg,0","Times":"YAGzXW3gftg,0","Trebuchet MS":"YAFcfrglpVA,0","Verdana":"YAGzXTctYtQ,0","Work Sans":"YAGXhLOKv44,0","Yellowtail":"YACgEYG4kG4,0"}}');</script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>POS Retail Pro</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
@@ -1518,32 +1517,6 @@ container.querySelector('#btn-add-sale')?.addEventListener('click', (e) => {
         if(ch)ch.textContent=change>=0?Utils.fmt(change):'Rp 0';
     }
 
-    async function saveSaleTransaction(print) {
-        if(!saleCart.length){Toast.show('Keranjang masih kosong!','warning');return;}
-        let subtotal=0,discTotal=0;
-        saleCart.forEach(c=>{const raw=c.price*c.qty;discTotal+=raw*c.disc/100;subtotal+=raw;});
-        const afterDisc=subtotal-discTotal-saleVoucher;
-        const tax=Math.round(Math.max(0,afterDisc)*saleTaxRate/100);
-        const grand=Math.round(Math.max(0,afterDisc)+tax);
-        const paid=parseFloat(document.getElementById('pos-paid')?.value||0);
-        if(salePayment==='Cash'&&paid<grand){Toast.show('Nominal bayar kurang!','danger');return;}
-
-        const customers=DataService.getByType('customer');
-        const custId=document.getElementById('pos-customer')?.value;
-        const cust=customers.find(c=>c.entity_id===custId);
-
-        const code='TRX-'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'-'+Utils.id().slice(0,4).toUpperCase();
-        const saleData={
-            code, customer_id:custId||'', customer_name:cust?.name||'Umum',
-            items:JSON.stringify(saleCart), total_items:String(saleCart.reduce((a,c)=>a+c.qty,0)),
-            subtotal:String(subtotal), discount:String(Math.round(discTotal)), voucher:String(saleVoucher),
-            tax:String(tax), grand_total:String(grand),
-            payment_method:salePayment, paid:String(paid), change:String(Math.max(0,paid-grand)),
-            status:'Lunas', cashier:document.getElementById('user-name')?.textContent||'Admin'
-        };
-
-        Loading.show();
-        const id=await DataService.create('sale',saleData);
         // Reduce product stock
         for(const item of saleCart){
             const prod=DataService.getById(item.product_id);
@@ -1790,9 +1763,10 @@ container.querySelector('#btn-add-sale')?.addEventListener('click', (e) => {
             <button type="button" id="tab-signin" class="flex-1 py-2 rounded-lg bg-blue-600 text-white transition">Masuk</button>
             <button type="button" id="tab-forgot" class="flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition">Lupa Pass</button>
         </div>
-
+      
         <!-- FORM 1: SIGN IN -->
         <form id="form-signin" class="space-y-4">
+            <div>
                 <label class="text-xs font-medium block mb-1">Email / Username</label>
                 <input type="text" id="signin-email" required placeholder="email@domain.com" class="w-full px-3 py-2.5 rounded-lg bg-slate-700 border border-slate-600 text-sm outline-none focus:ring-2 focus:ring-blue-500">
             </div>
