@@ -2707,29 +2707,4 @@ function resetTransactionsConfirm() {
         });
     }
 </script>
-  // ==========================================
-// PENDETEKSI TOMBOL KEMBALI DI HANDPHONE
-// ==========================================
-window.addEventListener('popstate', (event) => {
-    // 1. Tutup modal form/kasir jika sedang terbuka
-    if (window.App && typeof window.App.closeModal === 'function') {
-        window.App.closeModal();
-    }
-    
-    // 2. Tutup modal pencarian global (jika sedang terbuka)
-    const globalSearch = document.getElementById('global-search-modal');
-    if (globalSearch && !globalSearch.classList.contains('hidden')) {
-        globalSearch.classList.add('hidden');
-        globalSearch.classList.remove('flex');
-    }
-
-    // 3. Navigasi mundur sesuai urutan riwayat
-    if (event.state && event.state.page) {
-        window.App.navigate(event.state.page, false); // false = jangan buat history baru
-    } else {
-        // Fallback jika tidak ada state
-        window.App.navigate('dashboard', false);
-    }
-});
-</script>
 </body></html>
