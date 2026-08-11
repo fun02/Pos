@@ -1814,14 +1814,11 @@ container.querySelector('#btn-add-sale')?.addEventListener('click', (e) => {
         </form>
     </div>
 </div>
-
 <!-- FIREBASE AUTH & FIRESTORE INTEGRATION -->
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    
-    // Impor fungsi Firestore secara lengkap (tambahkan collection, addDoc, updateDoc, deleteDoc, getDocs)
-    import { getFirestore, doc, setDoc, getDoc, collection, addDoc, updateDoc, deleteDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, collection, addDoc, updateDoc, deleteDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyB4lkr5IzvrQIgRM7sZDO7yIKMU_16PE1U",
@@ -1836,7 +1833,6 @@ container.querySelector('#btn-add-sale')?.addEventListener('click', (e) => {
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // EKSPOR VARIABEL FIREBASE KE GLOBAL AGAR BISA DIBACA OLEH APLIKASI
     window.db = db;
     window.collection = collection;
     window.addDoc = addDoc;
@@ -1845,11 +1841,8 @@ container.querySelector('#btn-add-sale')?.addEventListener('click', (e) => {
     window.getDocs = getDocs;
 
     const authView = document.getElementById('auth-view');
-
-    // Tab Navigasi Handler
     const btnSignin = document.getElementById('tab-signin');
     const btnForgot = document.getElementById('tab-forgot');
-    
     const signinForm = document.getElementById('form-signin');
     const forgotForm = document.getElementById('form-forgot');
     const subtitle = document.getElementById('auth-subtitle');
@@ -1874,7 +1867,6 @@ container.querySelector('#btn-add-sale')?.addEventListener('click', (e) => {
     if(btnSignin) btnSignin.addEventListener('click', () => switchTab('signin'));
     if(btnForgot) btnForgot.addEventListener('click', () => switchTab('forgot'));
 
-    // Cek Status Sesi Login
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             if(authView) authView.classList.add('hidden');
@@ -1885,20 +1877,19 @@ container.querySelector('#btn-add-sale')?.addEventListener('click', (e) => {
                     const userData = userDoc.data();
                     const userRole = (userData.role || 'kasir').toLowerCase();
                     
-                    document.getElementById('user-name').textContent = userData.username || userData.fullName;
+                    document.getElementById('user-name').textContent = userData.username || userData.fullName || 'User';
                     document.getElementById('user-avatar').textContent = (userData.username || 'U').charAt(0).toUpperCase();
                     document.getElementById('current-role').textContent = userRole.toUpperCase();
                     
-                    // Terapkan Role Based Access Control ke Frontend
                     if(window.App && typeof window.App.setRole === 'function') {
                         window.App.setRole(userRole);
                     }
                 }
-            } catch (e) { console.error(e); }
-            if(window.App && typeof App.init === 'function') App.init();
+            } catch (e) { console.error("Error mengambil profil:", e); }
+            if(window.App && typeof window.App.init === 'function') window.App.init();
         } else {
             if(authView) authView.classList.remove('hidden');
-            if(window.App && App.Loading) App.Loading.hide();
+            if(window.App && window.App.Loading) window.App.Loading.hide();
         }
     });
 
@@ -1909,21 +1900,16 @@ container.querySelector('#btn-add-sale')?.addEventListener('click', (e) => {
         const pass = document.getElementById('signin-password').value;
 
         try {
-            if(window.App) App.Loading.show("Memproses masuk...");
+            if(window.App && window.App.Loading) window.App.Loading.show("Memproses masuk...");
             
-            // Lakukan Autentikasi Firebase
             const userCredential = await signInWithEmailAndPassword(auth, email, pass);
-            
-            // Ambil data user dari Firestore untuk mengetahui role-nya
             const userDocRef = doc(db, "users", userCredential.user.uid);
             const userDoc = await getDoc(userDocRef);
             
             if (userDoc.exists()) {
                 const userData = userDoc.data();
-                // Tetapkan role berdasarkan database (default: kasir jika kosong)
                 const dbRole = (userData.role || 'kasir').toLowerCase();
                 
-                // Set UI di Frontend berdasarkan role yang sah dari database
                 document.getElementById('user-name').textContent = userData.username || userData.fullName || 'User';
                 document.getElementById('user-avatar').textContent = (userData.username || 'U').charAt(0).toUpperCase();
                 document.getElementById('current-role').textContent = dbRole.toUpperCase();
@@ -1932,56 +1918,49 @@ container.querySelector('#btn-add-sale')?.addEventListener('click', (e) => {
                     window.App.setRole(dbRole);
                 }
 
-                if(window.App) App.Loading.hide();
-                // Auth state observer akan otomatis menyembunyikan form login
+                if(window.App && window.App.Loading) window.App.Loading.hide();
                 
             } else {
-                // Jika user berhasil login tapi tidak ada dokumen role di database
                 await signOut(auth);
-                if(window.App) App.Loading.hide();
+                if(window.App && window.App.Loading) window.App.Loading.hide();
                 alert("Akses ditolak: Data pengguna tidak ditemukan di sistem.");
-                return;
             }
 
         } catch (err) {
-            if(window.App) App.Loading.hide();
+            if(window.App && window.App.Loading) window.App.Loading.hide();
             alert("Gagal Masuk: Cek kembali email dan password Anda.");
             console.error(err);
         }
     });
 
-    // 3. LUPA PASSWORD (Tetap Sama)
     document.getElementById('form-forgot').addEventListener('submit', async (e) => {
         e.preventDefault();
         const email = document.getElementById('forgot-email').value;
         try {
-            if(window.App) App.Loading.show("Mengirim link reset...");
+            if(window.App && window.App.Loading) window.App.Loading.show("Mengirim link reset...");
             await sendPasswordResetEmail(auth, email);
-            if(window.App) App.Loading.hide();
+            if(window.App && window.App.Loading) window.App.Loading.hide();
             alert("Link pemulihan password telah dikirim ke email Anda.");
             switchTab('signin');
         } catch (err) {
-            if(window.App) App.Loading.hide();
+            if(window.App && window.App.Loading) window.App.Loading.hide();
             alert("Gagal mereset password: " + err.message);
         }
     });
 
-      // 4. AKSI LOGOUT SIDEBAR
     const btnSidebarLogout = document.getElementById('btn-sidebar-logout');
     if (btnSidebarLogout) {
         btnSidebarLogout.addEventListener('click', async () => {
-            // Panggil modal konfirmasi bawaan aplikasi
             const confirmed = await window.App.showConfirm(
                 "Keluar dari akun?", 
                 "Apakah Anda yakin ingin keluar dari POS Retail Pro?"
             );
             
-            // Jika user memilih 'Hapus' / 'Lanjutkan'
             if (confirmed) {
                 try {
                     if (window.App && window.App.Loading) window.App.Loading.show("Memproses keluar...");
-                    await signOut(auth); // Hapus sesi Firebase
-                    window.location.reload(); // Reload halaman untuk mereset seluruh state memori ke posisi awal (form login)
+                    await signOut(auth); 
+                    window.location.reload(); 
                 } catch (err) {
                     if (window.App && window.App.Loading) window.App.Loading.hide();
                     alert("Gagal keluar: " + err.message);
