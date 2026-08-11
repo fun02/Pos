@@ -1516,45 +1516,12 @@ container.querySelector('#btn-add-sale')?.addEventListener('click', (e) => {
         const ch=document.getElementById('pos-change');
         if(ch)ch.textContent=change>=0?Utils.fmt(change):'Rp 0';
     }
-
-        // Reduce product stock
-        for(const item of saleCart){
-            const prod=DataService.getById(item.product_id);
-            if(prod){const ns=Math.max(0,parseInt(prod.stock||0)-item.qty);await DataService.update(item.product_id,{...prod,stock:String(ns)});}
-        }
         Loading.hide();
         if(id&&print)printReceipt(id,'80');
         closeModal();
         saleCart=[];
     }
-
-          async function saveSaleTransaction(print) {
-        if(!saleCart.length){Toast.show('Keranjang masih kosong!','warning');return;}
-        let subtotal=0,discTotal=0;
-        saleCart.forEach(c=>{const raw=c.price*c.qty;discTotal+=raw*c.disc/100;subtotal+=raw;});
-        const afterDisc=subtotal-discTotal-saleVoucher;
-        const tax=Math.round(Math.max(0,afterDisc)*saleTaxRate/100);
-        const grand=Math.round(Math.max(0,afterDisc)+tax);
-        const paid=parseFloat(document.getElementById('pos-paid')?.value||0);
-        if(salePayment==='Cash'&&paid<grand){Toast.show('Nominal bayar kurang!','danger');return;}
-
-        const customers=DataService.getByType('customer');
-        const custId=document.getElementById('pos-customer')?.value;
-        const cust=customers.find(c=>c.entity_id===custId);
-
-        const code='TRX-'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'-'+Utils.id().slice(0,4).toUpperCase();
-        const saleData={
-            code, customer_id:custId||'', customer_name:cust?.name||'Umum',
-            items:JSON.stringify(saleCart), total_items:String(saleCart.reduce((a,c)=>a+c.qty,0)),
-            subtotal:String(subtotal), discount:String(Math.round(discTotal)), voucher:String(saleVoucher),
-            tax:String(tax), grand_total:String(grand),
-            payment_method:salePayment, paid:String(paid), change:String(Math.max(0,paid-grand)),
-            status:'Lunas', cashier:document.getElementById('user-name')?.textContent||'Admin'
-        };
-
-        Loading.show();
-        const id = await DataService.create('sale',saleData);
-
+                  
     function viewSale(entityId) {
         const s=DataService.getById(entityId);
         if(!s)return;
