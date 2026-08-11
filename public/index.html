@@ -1583,45 +1583,6 @@ container.querySelector('#btn-add-sale')?.addEventListener('click', (e) => {
         Loading.show();
         const id = await DataService.create('sale',saleData);
 
-        // ==========================================
-        // FITUR NOTIFIKASI TELEGRAM OTOMATIS
-        // ==========================================
-        // GANTI TOKEN DAN CHAT ID DI BAWAH INI
-        const botToken = '8725735477:AAHOj2f7rJhiSLdvF7mGWpGodlvBFs03dOI'; 
-        const chatId = '8419306331';
-        
-        const pesanTelegram = `💰 *TRANSAKSI BARU MASUK!* 💰\n\n` +
-                              `*No. Nota:* ${code}\n` +
-                              `*Kasir:* ${saleData.cashier}\n` +
-                              `*Pelanggan:* ${saleData.customer_name}\n` +
-                              `*Metode:* ${salePayment}\n` +
-                              `*Item Terjual:* ${saleData.total_items} item\n` +
-                              `*Total Pembayaran:* ${Utils.fmt(grand)}\n\n` +
-                              `_Waktu: ${new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })}_`;
-
-        // Kirim ke API Telegram berjalan di background (tanpa await agar kasir tidak lemot)
-        fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chat_id: chatId,
-                text: pesanTelegram,
-                parse_mode: 'Markdown'
-            })
-        }).catch(err => console.error("Gagal mengirim notif Telegram:", err));
-        // ==========================================
-
-        // Reduce product stock
-        for(const item of saleCart){
-            const prod=DataService.getById(item.product_id);
-            if(prod){const ns=Math.max(0,parseInt(prod.stock||0)-item.qty);await DataService.update(item.product_id,{...prod,stock:String(ns)});}
-        }
-        Loading.hide();
-        if(id&&print)printReceipt(id,'80');
-        closeModal();
-        saleCart=[];
-    }
-
     function viewSale(entityId) {
         const s=DataService.getById(entityId);
         if(!s)return;
@@ -1833,18 +1794,6 @@ container.querySelector('#btn-add-sale')?.addEventListener('click', (e) => {
 
         <!-- FORM 1: SIGN IN -->
         <form id="form-signin" class="space-y-4">
-            <div>
-                <label class="text-xs font-medium block mb-1">Role Akun</label>
-                <div class="relative">
-                    <select id="signin-role" required class="w-full px-3 py-2.5 rounded-lg bg-slate-700 border border-slate-600 text-sm outline-none focus:ring-2 focus:ring-blue-500 appearance-none">
-                        <option value="" disabled selected>Pilih Role ▼</option>
-                        <option value="admin">admin</option>
-                        <option value="supervisor">aupervisor</option>
-                        <option value="kasir">kasir</option>
-                    </select>
-                </div>
-            </div>
-            <div>
                 <label class="text-xs font-medium block mb-1">Email / Username</label>
                 <input type="text" id="signin-email" required placeholder="email@domain.com" class="w-full px-3 py-2.5 rounded-lg bg-slate-700 border border-slate-600 text-sm outline-none focus:ring-2 focus:ring-blue-500">
             </div>
@@ -1954,49 +1903,51 @@ container.querySelector('#btn-add-sale')?.addEventListener('click', (e) => {
         }
     });
 
-    // 1. SIGN IN DENGAN VALIDASI ROLE
+    // 1. SIGN IN OTOMATIS AMBIL ROLE DARI DATABASE
     document.getElementById('form-signin').addEventListener('submit', async (e) => {
         e.preventDefault();
         const email = document.getElementById('signin-email').value;
         const pass = document.getElementById('signin-password').value;
-        const selectedRole = document.getElementById('signin-role').value;
-
-        if(!selectedRole) {
-            alert("Silakan pilih Role terlebih dahulu!");
-            return;
-        }
 
         try {
             if(window.App) App.Loading.show("Memproses masuk...");
             
-            // Lakukan Autentikasi
+            // Lakukan Autentikasi Firebase
             const userCredential = await signInWithEmailAndPassword(auth, email, pass);
             
-            // Validasi Role dari Firestore
+            // Ambil data user dari Firestore untuk mengetahui role-nya
             const userDocRef = doc(db, "users", userCredential.user.uid);
             const userDoc = await getDoc(userDocRef);
             
             if (userDoc.exists()) {
-                const dbRole = (userDoc.data().role || 'kasir').toLowerCase();
+                const userData = userDoc.data();
+                // Tetapkan role berdasarkan database (default: kasir jika kosong)
+                const dbRole = (userData.role || 'kasir').toLowerCase();
                 
-                // Jika Role yang dipilih tidak sama dengan database
-                if (dbRole !== selectedRole.toLowerCase()) {
-                    await signOut(auth); // Batalkan sesi masuk
-                    if(window.App) App.Loading.hide();
-                    alert("Role tidak sesuai dengan akun Anda.");
-                    return;
+                // Set UI di Frontend berdasarkan role yang sah dari database
+                document.getElementById('user-name').textContent = userData.username || userData.fullName || 'User';
+                document.getElementById('user-avatar').textContent = (userData.username || 'U').charAt(0).toUpperCase();
+                document.getElementById('current-role').textContent = dbRole.toUpperCase();
+                
+                if(window.App && typeof window.App.setRole === 'function') {
+                    window.App.setRole(dbRole);
                 }
+
+                if(window.App) App.Loading.hide();
+                // Auth state observer akan otomatis menyembunyikan form login
+                
             } else {
-                // Jika user login tapi data di firestore tidak ada, amankan dengan signOut
+                // Jika user berhasil login tapi tidak ada dokumen role di database
                 await signOut(auth);
                 if(window.App) App.Loading.hide();
-                alert("Data role pengguna tidak ditemukan di database.");
+                alert("Akses ditolak: Data pengguna tidak ditemukan di sistem.");
                 return;
             }
 
         } catch (err) {
             if(window.App) App.Loading.hide();
-            alert("Gagal Masuk: " + err.message);
+            alert("Gagal Masuk: Cek kembali email dan password Anda.");
+            console.error(err);
         }
     });
 
