@@ -49,7 +49,89 @@
     to { opacity: 1; transform: translateY(0) scale(1); } 
 }
 .animate-slide-down { animation: slideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-</style>
+/* ==========================================================================
+   FAAN STORE Design System v2.0 - Core Styles (Dashboard Scope)
+   ========================================================================== */
+
+/* Numeric Tabular Alignment for Financial & Quantity Data */
+.font-mono-num {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Base Enterprise Card */
+.es-card {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem; /* 8px */
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.dark .es-card {
+  background-color: #0f172a;
+  border-color: #1e293b;
+}
+
+/* Enterprise Dense Table */
+.es-table-container {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+}
+.dark .es-table-container {
+  border-color: #1e293b;
+}
+
+.es-table {
+  width: 100%;
+  text-align: left;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.es-table thead tr {
+  background-color: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+.dark .es-table thead tr {
+  background-color: #1e293b;
+  border-bottom-color: #334155;
+}
+
+.es-table th {
+  padding: 0.625rem 0.875rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+}
+.dark .es-table th {
+  color: #94a3b8;
+}
+
+.es-table td {
+  padding: 0.625rem 0.875rem;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+}
+.dark .es-table td {
+  border-bottom-color: #1e293b;
+  color: #cbd5e1;
+}
+
+.es-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.es-table tbody tr:hover {
+  background-color: #f8fafc;
+}
+.dark .es-table tbody tr:hover {
+  background-color: #1e293b/50;
+}
+  </style>
   
   <!-- ZXing Barcode Scanner UMD Library -->
 <script type="text/javascript" src="https://unpkg.com/@zxing/library@0.21.3"></script>
@@ -613,80 +695,391 @@ document.getElementById('global-search-input')?.addEventListener('input', (e) =>
     }, 250);
 });
     
-    // ---- Dashboard ----
-    function renderDashboard(container) {
-        const sales = DataService.getByType('sale');
-        const products = DataService.getByType('product');
-        
-        // --- Setup Timezone Asia/Jakarta (WIB) ---
-        const getWIBDate = (dateObj) => {
-            return new Date((dateObj || new Date()).toLocaleString("en-US", { timeZone: "Asia/Jakarta" }));
-        };
+/**
+ * Phase 1 Implementation: Dashboard View
+ * Refactored for FAAN STORE Design System v2.0
+ */
+async function renderDashboard() {
+  const container = document.getElementById('app-content');
+  if (!container) return;
 
-        const todayWIB = getWIBDate();
-        const todayStr = `${todayWIB.getFullYear()}-${String(todayWIB.getMonth()+1).padStart(2,'0')}-${String(todayWIB.getDate()).padStart(2,'0')}`;
-        
-        const todaySales = sales.filter(s => {
-            if(!s.created_at) return false;
-            const d = getWIBDate(new Date(s.created_at));
-            return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` === todayStr;
-        });
+  // Render Skeleton / Loading State
+  container.innerHTML = `
+    <div class="space-y-6">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
+        <div>
+          <h1 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Dashboard Overview</h1>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Ringkasan performa penjualan dan status operasional toko.</p>
+        </div>
+        <div class="text-xs text-slate-500 font-mono-num" id="dash-last-updated">Updating...</div>
+      </div>
+      
+      <!-- KPI Grid Loading Skeleton -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        ${[1, 2, 3, 4].map(() => `
+          <div class="es-card p-4 animate-pulse">
+            <div class="h-3 w-24 bg-slate-200 dark:bg-slate-800 rounded mb-3"></div>
+            <div class="h-7 w-32 bg-slate-200 dark:bg-slate-800 rounded mb-2"></div>
+            <div class="h-3 w-16 bg-slate-200 dark:bg-slate-800 rounded"></div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
 
-        const totalRevenue = sales.reduce((a,s)=>a+parseFloat(s.grand_total||0),0);
-        const todayRevenue = todaySales.reduce((a,s)=>a+parseFloat(s.grand_total||0),0);
-        const totalItems = sales.reduce((a,s)=>a+parseInt(s.total_items||0),0);
-        const lowStock = products.filter(p=>parseInt(p.stock||0)<=parseInt(p.min_stock||5));
+  try {
+    // Fetch Operational Data via DataService
+    const [sales, products, stockLogs] = await Promise.all([
+      DataService.getSales(),
+      DataService.getProducts(),
+      DataService.getStockLogs ? DataService.getStockLogs() : Promise.resolve([])
+    ]);
 
-        // --- Kalkulasi 7 Hari Terakhir ---
-        const last7Days = [];
-        let prev7DaysRev = 0;
-        
-        // Inisialisasi array 7 hari berurutan (H-6 sampai Hari Ini)
-        for (let i = 6; i >= 0; i--) {
-            const d = getWIBDate();
-            d.setDate(d.getDate() - i);
-            last7Days.push({
-                dateStr: `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`,
-                dayName: d.toLocaleDateString('id-ID', { weekday: 'short' }),
-                fullDate: d.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' }),
-                rev: 0,
-                trx: 0
-            });
+    // Calculate Metrics
+    const todayStr = new Date().toISOString().split('T')[0];
+    const todaySales = sales.filter(s => s.createdAt && s.createdAt.startsWith(todayStr));
+    const totalOmsetToday = todaySales.reduce((acc, curr) => acc + (curr.grandTotal || 0), 0);
+    const totalTxToday = todaySales.length;
+    
+    let totalItemsSoldToday = 0;
+    todaySales.forEach(s => {
+      if (Array.isArray(s.items)) {
+        s.items.forEach(i => totalItemsSoldToday += (i.qty || 0));
+      }
+    });
+
+    const lowStockProducts = products.filter(p => (p.stock || 0) <= (p.minStock || 5));
+
+    // Render Dashboard UI Component
+    container.innerHTML = `
+      <div class="space-y-6">
+        <!-- Page Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-slate-200 dark:border-slate-800">
+          <div>
+            <h1 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Dashboard Overview</h1>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Ringkasan performa penjualan dan status operasional toko.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span>
+              Sistem Aktif
+            </span>
+          </div>
+        </div>
+
+        <!-- KPI Metrics Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- KPI 1: Omset Hari Ini -->
+          <div class="es-card p-4">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Omset Hari Ini</span>
+              <div class="p-2 rounded bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400">
+                <i data-lucide="wallet" class="w-4 h-4"></i>
+              </div>
+            </div>
+            <div class="mt-2">
+              <div class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white font-mono-num">
+                ${Utils.fmt(totalOmsetToday)}
+              </div>
+              <div class="mt-1 flex items-center text-xs text-slate-500 dark:text-slate-400">
+                <span class="font-medium text-slate-700 dark:text-slate-300 font-mono-num">${totalTxToday}</span>
+                <span class="ml-1">transaksi selesai</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- KPI 2: Total Transaksi -->
+          <div class="es-card p-4">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Transaksi</span>
+              <div class="p-2 rounded bg-indigo-50 text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-400">
+                <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+              </div>
+            </div>
+            <div class="mt-2">
+              <div class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white font-mono-num">
+                ${totalTxToday}
+              </div>
+              <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                Hari ini
+              </div>
+            </div>
+          </div>
+
+          <!-- KPI 3: Produk Terjual -->
+          <div class="es-card p-4">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Item Terjual</span>
+              <div class="p-2 rounded bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400">
+                <i data-lucide="package-check" class="w-4 h-4"></i>
+              </div>
+            </div>
+            <div class="mt-2">
+              <div class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white font-mono-num">
+                ${totalItemsSoldToday}
+              </div>
+              <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                Unit barang keluar
+              </div>
+            </div>
+          </div>
+
+          <!-- KPI 4: Stok Menipis Alert -->
+          <div class="es-card p-4">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Peringatan Stok</span>
+              <div class="p-2 rounded ${lowStockProducts.length > 0 ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/50 dark:text-amber-400' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'}">
+                <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+              </div>
+            </div>
+            <div class="mt-2">
+              <div class="text-2xl font-bold tracking-tight ${lowStockProducts.length > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-900 dark:text-white'} font-mono-num">
+                ${lowStockProducts.length}
+              </div>
+              <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                Item batas minimum
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Main Content Area: Chart + Stock Alert List -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          <!-- Sales Trend Chart (2 Cols) -->
+          <div class="lg:col-span-2 es-card p-5">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h2 class="text-sm font-bold text-slate-900 dark:text-white">Tren Penjualan</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Grafik pendapatan periode terkini</p>
+              </div>
+              <select id="chart-period" class="px-2.5 py-1 text-xs font-medium rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-blue-500">
+                <option value="7">7 Hari Terakhir</option>
+                <option value="30">30 Hari Terakhir</option>
+              </select>
+            </div>
+            <div id="sales-chart" class="w-full h-64"></div>
+          </div>
+
+          <!-- Stock Alert Side Panel (1 Col) -->
+          <div class="es-card p-5 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-100 dark:border-slate-800">
+                <h2 class="text-sm font-bold text-slate-900 dark:text-white">Perlu Restok</h2>
+                <button onclick="navigate('stock')" class="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 font-medium">
+                  Kelola Stok &rarr;
+                </button>
+              </div>
+              
+              ${lowStockProducts.length === 0 ? `
+                <div class="py-8 text-center">
+                  <i data-lucide="check-circle-2" class="w-8 h-8 mx-auto text-emerald-500 mb-2"></i>
+                  <p class="text-xs text-slate-500 dark:text-slate-400">Semua stok produk berada di batas aman.</p>
+                </div>
+              ` : `
+                <div class="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                  ${lowStockProducts.slice(0, 5).map(p => `
+                    <div class="flex items-center justify-between p-2 rounded bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                      <div class="truncate mr-2">
+                        <div class="text-xs font-medium text-slate-800 dark:text-slate-200 truncate">${p.name || 'Produk Unnamed'}</div>
+                        <div class="text-[10px] text-slate-400 font-mono-num">${p.code || '-'}</div>
+                      </div>
+                      <div class="text-right flex-shrink-0">
+                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 font-mono-num">
+                          Sisa: ${p.stock || 0}
+                        </span>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              `}
+            </div>
+            
+            ${lowStockProducts.length > 5 ? `
+              <div class="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 text-center">
+                <span class="text-[11px] text-slate-500">Mempunyai +${lowStockProducts.length - 5} produk lainnya yang menipis</span>
+              </div>
+            ` : ''}
+          </div>
+
+        </div>
+
+        <!-- Recent Transactions Table -->
+        <div class="es-card p-5">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h2 class="text-sm font-bold text-slate-900 dark:text-white">Transaksi Terakhir</h2>
+              <p class="text-xs text-slate-500 dark:text-slate-400">5 transaksi penjualan paling baru</p>
+            </div>
+            <button onclick="navigate('sales')" class="text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400">
+              Lihat Semua &rarr;
+            </button>
+          </div>
+
+          <div class="es-table-container">
+            <table class="es-table">
+              <thead>
+                <tr>
+                  <th>No. Faktur</th>
+                  <th>Tanggal & Waktu</th>
+                  <th>Kasir / Operator</th>
+                  <th>Pembayaran</th>
+                  <th class="text-right">Total Akhir</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${sales.length === 0 ? `
+                  <tr>
+                    <td colspan="5" class="text-center py-6 text-xs text-slate-400">Belum ada transaksi tercatat.</td>
+                  </tr>
+                ` : sales.slice(0, 5).map(s => `
+                  <tr>
+                    <td class="font-medium text-slate-900 dark:text-white font-mono-num">#${s.id || s.invoiceNo || '-'}</td>
+                    <td class="text-xs text-slate-500 dark:text-slate-400">${s.createdAt ? Utils.formatDate(s.createdAt) : '-'}</td>
+                    <td class="text-xs">${s.cashierName || 'Kasir Standard'}</td>
+                    <td>
+                      <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                        ${s.paymentMethod || 'TUNAI'}
+                      </span>
+                    </td>
+                    <td class="text-right font-bold text-slate-900 dark:text-white font-mono-num">
+                      ${Utils.fmt(s.grandTotal || 0)}
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    `;
+
+    // Re-initialize Lucide Icons
+    if (window.lucide) lucide.createIcons();
+
+    // Render Sales Chart
+    renderSalesTrendChart(sales, 7);
+
+    // Event Listener for Chart Period Switch
+    const periodSelect = document.getElementById('chart-period');
+    if (periodSelect) {
+      periodSelect.addEventListener('change', (e) => {
+        renderSalesTrendChart(sales, parseInt(e.target.value));
+      });
+    }
+
+  } catch (err) {
+    console.error('Error rendering dashboard:', err);
+    container.innerHTML = `
+      <div class="p-4 rounded bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-xs">
+        <strong>Gagal Memuat Dashboard:</strong> ${err.message || 'Terjadi kesalahan sistem.'}
+      </div>
+    `;
+  }
+}
+
+/**
+ * Helper: Render ApexCharts Sales Trend (Clean Enterprise Theme)
+ */
+function renderSalesTrendChart(sales, days = 7) {
+  const chartEl = document.getElementById('sales-chart');
+  if (!chartEl || !window.ApexCharts) return;
+
+  // Clear previous chart if exists
+  chartEl.innerHTML = '';
+
+  // Generate Date Labels
+  const labels = [];
+  const totals = [];
+  const now = new Date();
+
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().split('T')[0];
+    
+    // Format Label (DD/MM)
+    const labelFormatted = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+    labels.push(labelFormatted);
+
+    // Sum totals for dateStr
+    const dayTotal = sales
+      .filter(s => s.createdAt && s.createdAt.startsWith(dateStr))
+      .reduce((sum, s) => sum + (s.grandTotal || 0), 0);
+    
+    totals.push(dayTotal);
+  }
+
+  const isDark = document.documentElement.classList.contains('dark');
+
+  const options = {
+    series: [{
+      name: 'Omset',
+      data: totals
+    }],
+    chart: {
+      type: 'area',
+      height: 250,
+      toolbar: { show: false },
+      sparkline: { enabled: false },
+      fontFamily: 'Inter, system-ui, sans-serif'
+    },
+    colors: ['#2563eb'],
+    stroke: {
+      curve: 'smooth',
+      width: 2
+    },
+    fill: {
+      type: 'gradient',
+      gradient: {
+        shadeIntensity: 1,
+        opacityFrom: 0.2,
+        opacityTo: 0.0,
+        stops: [0, 90, 100]
+      }
+    },
+    dataLabels: { enabled: false },
+    xaxis: {
+      categories: labels,
+      labels: {
+        style: {
+          colors: isDark ? '#64748b' : '#94a3b8',
+          fontSize: '11px'
         }
+      },
+      axisBorder: { show: false },
+      axisTicks: { show: false }
+    },
+    yaxis: {
+      labels: {
+        style: {
+          colors: isDark ? '#64748b' : '#94a3b8',
+          fontSize: '11px'
+        },
+        formatter: (val) => {
+          if (val >= 1000000) return (val / 1000000).toFixed(1) + 'M';
+          if (val >= 1000) return (val / 1000).toFixed(0) + 'k';
+          return val;
+        }
+      }
+    },
+    grid: {
+      borderColor: isDark ? '#1e293b' : '#f1f5f9',
+      strokeDashArray: 4
+    },
+    tooltip: {
+      theme: isDark ? 'dark' : 'light',
+      y: {
+        formatter: (val) => Utils.fmt(val)
+      }
+    }
+  };
 
-        // Batas periode sebelumnya untuk komparasi persentase (H-13 sampai H-7)
-        const prevEnd = getWIBDate(); prevEnd.setDate(prevEnd.getDate() - 7); prevEnd.setHours(23,59,59,999);
-        const prevStart = getWIBDate(); prevStart.setDate(prevStart.getDate() - 13); prevStart.setHours(0,0,0,0);
-
-        // Agregasi Data Penjualan Aktual
-        sales.forEach(s => {
-            if(!s.created_at) return;
-            const d = getWIBDate(new Date(s.created_at));
-            const dStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-            const rev = parseFloat(s.grand_total || 0);
-
-            const dayObj = last7Days.find(x => x.dateStr === dStr);
-            if (dayObj) {
-                dayObj.rev += rev;
-                dayObj.trx += 1;
-            } else if (d >= prevStart && d <= prevEnd) {
-                prev7DaysRev += rev;
-            }
-        });
-
-        // Statistik Grafik
-        const chartTotalRev = last7Days.reduce((a, b) => a + b.rev, 0);
-        const chartTotalTrx = last7Days.reduce((a, b) => a + b.trx, 0);
-        const chartAvgRev = chartTotalRev / 7;
-        
-        let trendPct = 0;
-        if (prev7DaysRev > 0) trendPct = ((chartTotalRev - prev7DaysRev) / prev7DaysRev) * 100;
-        else if (chartTotalRev > 0) trendPct = 100;
-        
-        const trendIcon = trendPct >= 0 ? 'trending-up' : 'trending-down';
-        const trendClass = trendPct >= 0 ? 'text-success bg-success/10' : 'text-danger bg-danger/10';
-        const trendText = (trendPct > 0 ? '+' : '') + trendPct.toFixed(1).replace('.', ',') + '%';
-
+  const chart = new ApexCharts(chartEl, options);
+  chart.render();
+}
+      
         // --- Render UI ---
         container.innerHTML = `
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
